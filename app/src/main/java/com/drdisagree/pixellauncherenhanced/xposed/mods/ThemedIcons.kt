@@ -150,6 +150,18 @@ class ThemedIcons(context: Context) : ModPack(context) {
                 }
             }
 
+        // Hook ThemeManager.isIconThemeEnabled() for new launcher versions
+        // This ensures themed icons work when our setting is enabled
+        themeManagerClass?.let { clazz ->
+            clazz.hookMethod("isIconThemeEnabled")
+                .suppressError()
+                .runAfter { param ->
+                    if (appDrawerThemedIcons && param.result == false) {
+                        param.result = true
+                    }
+                }
+        }
+
         bubbleTextViewClass
             .hookMethod("applyIconAndLabel")
             .parameters("com.android.launcher3.model.data.ItemInfoWithIcon")
