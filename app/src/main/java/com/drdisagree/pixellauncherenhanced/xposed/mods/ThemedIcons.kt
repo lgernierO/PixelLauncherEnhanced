@@ -253,18 +253,19 @@ class ThemedIcons(context: Context) : ModPack(context) {
                         if (icon != null) {
                             try {
                                 val controller = monoThemeControllerClass.getConstructor().newInstance()
-                                // Create an AdaptiveIconDrawable from the bitmap
+                                // Convert hardware bitmap to software bitmap
+                                val softwareIcon = icon.copy(android.graphics.Bitmap.Config.ARGB_8888, false)
                                 val adaptiveIcon = android.graphics.drawable.AdaptiveIconDrawable(
                                     android.graphics.drawable.ColorDrawable(android.graphics.Color.WHITE),
-                                    android.graphics.drawable.BitmapDrawable(mContext.resources, icon)
+                                    android.graphics.drawable.BitmapDrawable(mContext.resources, softwareIcon)
                                 )
                                 val context = param.args[0] as android.content.Context
                                 val newThemedBitmap = controller.callMethod(
                                     "createThemedBitmap",
                                     adaptiveIcon,
                                     param.thisObject,
-                                    null, // baseIconFactory
-                                    null  // sourceHint
+                                    null,
+                                    null
                                 )
                                 if (newThemedBitmap != null) {
                                     de.robv.android.xposed.XposedHelpers.setObjectField(
