@@ -65,7 +65,10 @@ class ClearAllButton(context: Context) : ModPack(context) {
             findClass("com.android.launcher3.uioverrides.states.BackgroundAppState")
         val overviewStateClass =
             findClass("com.android.launcher3.uioverrides.states.OverviewState")
-        val featureFlagsClass = findClass("com.android.launcher3.config.FeatureFlags")
+        val featureFlagsClass = findClass(
+            "com.android.launcher3.config.FeatureFlags",
+            suppressError = true
+        )
         val recentsStateClass = findClass("com.android.quickstep.fallback.RecentsState")
         val overviewActionsViewClass = findClass("com.android.quickstep.views.OverviewActionsView")
         val dismissAllTasksMethod: Method =

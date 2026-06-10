@@ -159,6 +159,7 @@ class SmartSpace(context: Context) : ModPack(context) {
 
         workspaceClass
             .hookMethod("bindAndInitFirstWorkspaceScreen")
+            .suppressError()
             .runBefore { param ->
                 if (!hideQuickspace) return@runBefore
 

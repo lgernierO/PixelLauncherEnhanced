@@ -36,7 +36,10 @@ class IconTextSize(context: Context) : ModPack(context) {
 
     override fun handleLoadPackage(loadPackageParam: LoadPackageParam) {
         val deviceProfileClass = findClass("com.android.launcher3.DeviceProfile")
-        val deviceProfileBuilderClass = findClass($$"com.android.launcher3.DeviceProfile$Builder")
+        val deviceProfileBuilderClass = findClass(
+            $$"com.android.launcher3.DeviceProfile$Builder",
+            suppressError = true
+        )
 
         fun Any.hookDeviceProfile() {
             val temp = getFieldSilently("iconSizePx") as? Int
@@ -171,6 +174,7 @@ class IconTextSize(context: Context) : ModPack(context) {
 
         deviceProfileBuilderClass
             .hookMethod("build")
+            .suppressError()
             .runAfter { param ->
                 try {
                     param.result.hookDeviceProfile()

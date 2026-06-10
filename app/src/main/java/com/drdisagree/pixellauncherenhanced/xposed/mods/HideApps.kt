@@ -122,6 +122,7 @@ class HideApps(context: Context) : ModPack(context) {
 
         allAppsStoreClass
             .hookMethod("setApps")
+            .suppressError()
             .runAfter { param ->
                 val apps = param.args[0]
 

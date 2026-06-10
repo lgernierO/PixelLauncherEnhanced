@@ -45,7 +45,10 @@ class GridOptions (context: Context) : ModPack(context) {
 
     override fun handleLoadPackage(loadPackageParam: XC_LoadPackage.LoadPackageParam) {
         val deviceProfileClass = findClass("com.android.launcher3.DeviceProfile")
-        val deviceProfileBuilderClass = findClass($$"com.android.launcher3.DeviceProfile$Builder")
+        val deviceProfileBuilderClass = findClass(
+            $$"com.android.launcher3.DeviceProfile$Builder",
+            suppressError = true
+        )
         val invariantDeviceProfileClass = findClass("com.android.launcher3.InvariantDeviceProfile")
 
         fun Any.hookDeviceProfile() {
@@ -75,6 +78,7 @@ class GridOptions (context: Context) : ModPack(context) {
 
         deviceProfileBuilderClass
             .hookMethod("build")
+            .suppressError()
             .runAfter { param ->
                 param.result.hookDeviceProfile()
             }
@@ -102,6 +106,7 @@ class GridOptions (context: Context) : ModPack(context) {
 
         invariantDeviceProfileClass
             .hookMethod("invDistWeightedInterpolate")
+            .suppressError()
             .runAfter { param ->
                 if (homeScreenGridColumns != 0) {
                     val displayOption = param.result
