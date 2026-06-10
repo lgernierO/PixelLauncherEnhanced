@@ -38,6 +38,7 @@ class HideApps(context: Context) : ModPack(context) {
         private var hotseatPredictionControllerInstance: Any? = null
         private var hybridHotseatOrganizerClassInstance: Any? = null
         private var predictionRowViewInstance: Any? = null
+        private val hookedTaskClasses = mutableSetOf<String>()
 
         fun updateLauncherIcons(context: Context) {
             activityAllAppsContainerViewInstance.callMethod("onAppsUpdated")
@@ -260,6 +261,10 @@ class HideApps(context: Context) : ModPack(context) {
                         if (baseModelUpdateTaskClass != null &&
                             taskClass.simpleName != baseModelUpdateTaskClass.simpleName
                         ) return@runBefore
+
+                        // Skip if this class is already hooked to prevent duplicate hook registration
+                        if (hookedTaskClasses.contains(taskClass.name)) return@runBefore
+                        hookedTaskClasses.add(taskClass.name)
 
                         val unhookTokens = XposedBridge.hookAllMethods(
                             taskClass,

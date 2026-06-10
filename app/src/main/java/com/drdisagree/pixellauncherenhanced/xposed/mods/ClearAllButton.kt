@@ -107,12 +107,14 @@ class ClearAllButton(context: Context) : ModPack(context) {
                         .getField("value")
                 val isPhone = deviceProfile.getFieldSilently("isPhone") as? Boolean
                     ?: deviceProfile
-                        .getField("mDeviceProperties")
-                        .getField("isPhone") as Boolean
+                        .getFieldSilently("mDeviceProperties")
+                        ?.getFieldSilently("isPhone") as? Boolean
+                    ?: false
                 val isLandscape = deviceProfile.getFieldSilently("isLandscape") as? Boolean
                     ?: deviceProfile
-                        .getField("mDeviceProperties")
-                        .getField("isLandscape") as Boolean
+                        .getFieldSilently("mDeviceProperties")
+                        ?.getFieldSilently("isLandscape") as? Boolean
+                    ?: false
 
                 val showFloatingSearch = if (isPhone) {
                     // Only show search in phone overview in portrait mode.

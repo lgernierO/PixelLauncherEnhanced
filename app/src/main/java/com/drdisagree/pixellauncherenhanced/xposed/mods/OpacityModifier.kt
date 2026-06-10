@@ -122,7 +122,7 @@ class OpacityModifier(context: Context) : ModPack(context) {
                     ?: launcher
                         .callMethodSilently("getDeviceProfile")
                         .getFieldSilently("mDeviceProperties")
-                        .getFieldSilently("isTablet") as? Boolean) == true
+                        ?.getFieldSilently("isTablet") as? Boolean) == true
 
                 if (!isTablet) {
                     if (param.result is Int) {
