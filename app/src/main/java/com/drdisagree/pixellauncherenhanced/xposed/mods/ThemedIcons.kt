@@ -5,6 +5,8 @@ import android.content.Context
 import android.graphics.drawable.AdaptiveIconDrawable
 import android.graphics.drawable.Drawable
 import android.os.Build
+import android.os.Handler
+import android.os.Looper
 import android.text.TextUtils
 import com.drdisagree.pixellauncherenhanced.data.common.Constants.APP_DRAWER_THEMED_ICONS
 import com.drdisagree.pixellauncherenhanced.data.common.Constants.FORCE_THEMED_ICONS
@@ -55,6 +57,15 @@ class ThemedIcons(context: Context) : ModPack(context) {
     @SuppressLint("DiscouragedApi")
     override fun handleLoadPackage(loadPackageParam: LoadPackageParam) {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) return
+
+        // Force reload icons on startup to ensure themed icons are applied
+        // This fixes the issue where themed icons fail after a second restart
+        if (appDrawerThemedIcons || forceThemedIcons) {
+            Handler(Looper.getMainLooper()).postDelayed({
+                log("[ThemedIcons] Force reloading icons on startup")
+                reloadIcons()
+            }, 3000)
+        }
 
         try {
             // Only for modified Launcher3
