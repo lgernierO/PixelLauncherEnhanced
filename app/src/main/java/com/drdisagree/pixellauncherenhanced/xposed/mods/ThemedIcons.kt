@@ -247,9 +247,11 @@ class ThemedIcons(context: Context) : ModPack(context) {
                         val icon = param.thisObject.getFieldSilently("icon") as? android.graphics.Bitmap
                         if (icon != null) {
                             try {
+                                // Convert hardware bitmap to software bitmap
+                                val softwareIcon = icon.copy(android.graphics.Bitmap.Config.ARGB_8888, false)
                                 // Use our MonochromeIconFactory to create monochrome drawable
-                                val monoDrawable = MonochromeIconFactory(icon.width, false)
-                                    .wrap(mContext, android.graphics.drawable.BitmapDrawable(mContext.resources, icon))
+                                val monoDrawable = MonochromeIconFactory(softwareIcon.width, false)
+                                    .wrap(mContext, android.graphics.drawable.BitmapDrawable(mContext.resources, softwareIcon))
 
                                 // Get the monochrome bitmap from the drawable
                                 val monoBitmap = (monoDrawable as? android.graphics.drawable.BitmapDrawable)?.bitmap
