@@ -85,13 +85,15 @@ class HotseatMod(context: Context) : ModPack(context) {
                         ?.getFieldSilently("workspacePadding") as? Rect
                 val workspace = param.thisObject as View
 
-                workspace.setPadding(
-                    padding.left,
-                    padding.top,
-                    padding.right,
-                    if (desktopDockSpacing == -1) padding.bottom
-                    else mContext.toPx(desktopDockSpacing + 20)
-                )
+                if (padding != null) {
+                    workspace.setPadding(
+                        padding.left,
+                        padding.top,
+                        padding.right,
+                        if (desktopDockSpacing == -1) padding.bottom
+                        else mContext.toPx(desktopDockSpacing + 20)
+                    )
+                }
             }
 
         ResourceHookManager

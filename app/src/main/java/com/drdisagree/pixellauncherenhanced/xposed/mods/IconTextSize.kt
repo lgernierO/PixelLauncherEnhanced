@@ -87,7 +87,7 @@ class IconTextSize(context: Context) : ModPack(context) {
                 val mWorkspaceProfile = getFieldSilently("mWorkspaceProfile")
                 if (mWorkspaceProfile == null) {
                     // New launcher version - field not available, skip this section
-                    return@runAfter
+                    return
                 }
                 var mWorkspaceProfileIconSizePx =
                     mWorkspaceProfile.getField("iconSizePx") as Int
