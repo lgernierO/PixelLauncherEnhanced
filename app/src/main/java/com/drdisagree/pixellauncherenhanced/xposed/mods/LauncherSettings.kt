@@ -16,7 +16,7 @@ import com.drdisagree.pixellauncherenhanced.data.common.Constants.HIDE_APPS_FROM
 import com.drdisagree.pixellauncherenhanced.data.common.Constants.LAUNCHER3_PACKAGE
 import com.drdisagree.pixellauncherenhanced.data.common.Constants.PIXEL_LAUNCHER_PACKAGE
 import com.drdisagree.pixellauncherenhanced.data.common.Constants.TOGGLE_HIDE_APPS_IN_OPTIONS_POPUP
-import com.drdisagree.pixellauncherenhanced.xposed.HookRes.Companion.modRes
+import com.drdisagree.pixellauncherenhanced.xposed.HookRes.modRes
 import com.drdisagree.pixellauncherenhanced.xposed.ModPack
 import com.drdisagree.pixellauncherenhanced.xposed.mods.toolkit.XposedHook.Companion.findClass
 import com.drdisagree.pixellauncherenhanced.xposed.mods.toolkit.callMethod
@@ -29,7 +29,6 @@ import com.drdisagree.pixellauncherenhanced.xposed.mods.toolkit.hookMethod
 import com.drdisagree.pixellauncherenhanced.xposed.mods.toolkit.log
 import com.drdisagree.pixellauncherenhanced.xposed.mods.toolkit.setField
 import com.drdisagree.pixellauncherenhanced.xposed.utils.XPrefs.Xprefs
-import de.robv.android.xposed.callbacks.XC_LoadPackage.LoadPackageParam
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -64,7 +63,7 @@ class LauncherSettings(context: Context) : ModPack(context) {
 
     @Suppress("deprecation")
     @SuppressLint("DiscouragedApi", "UseCompatLoadingForDrawables")
-    override fun handleLoadPackage(loadPackageParam: LoadPackageParam) {
+    override fun handleLoadPackage(packageName: String, classLoader: ClassLoader) {
         val launcherSettingsFragmentClass = findClass(
             $$"com.android.launcher3.SettingsActivity$LauncherSettingsFragment",
             $$"com.android.launcher3.settings.SettingsActivity$LauncherSettingsFragment"

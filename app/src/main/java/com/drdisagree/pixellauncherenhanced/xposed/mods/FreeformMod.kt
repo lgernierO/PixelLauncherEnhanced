@@ -18,7 +18,6 @@ import com.drdisagree.pixellauncherenhanced.xposed.mods.toolkit.getField
 import com.drdisagree.pixellauncherenhanced.xposed.mods.toolkit.getStaticField
 import com.drdisagree.pixellauncherenhanced.xposed.mods.toolkit.hookMethod
 import com.drdisagree.pixellauncherenhanced.xposed.utils.XPrefs.Xprefs
-import de.robv.android.xposed.callbacks.XC_LoadPackage.LoadPackageParam
 
 class FreeformMod(context: Context) : ModPack(context) {
 
@@ -34,7 +33,7 @@ class FreeformMod(context: Context) : ModPack(context) {
         }
     }
 
-    override fun handleLoadPackage(loadPackageParam: LoadPackageParam) {
+    override fun handleLoadPackage(packageName: String, classLoader: ClassLoader) {
         val absSwipeClass = findClass("com.android.quickstep.AbsSwipeUpHandler")
         val gestureStateClass = findClass("com.android.quickstep.GestureState")
         val gestureEndTargetClass = findClass("com.android.quickstep.GestureState.GestureEndTarget")

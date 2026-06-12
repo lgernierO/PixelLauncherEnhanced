@@ -26,11 +26,10 @@ import com.drdisagree.pixellauncherenhanced.xposed.mods.toolkit.hasMethod
 import com.drdisagree.pixellauncherenhanced.xposed.mods.toolkit.hookConstructor
 import com.drdisagree.pixellauncherenhanced.xposed.mods.toolkit.hookMethod
 import com.drdisagree.pixellauncherenhanced.xposed.mods.toolkit.setAnyField
+import com.drdisagree.pixellauncherenhanced.xposed.mods.toolkit.setExtraField
 import com.drdisagree.pixellauncherenhanced.xposed.mods.toolkit.setField
 import com.drdisagree.pixellauncherenhanced.xposed.mods.toolkit.setFieldSilently
 import com.drdisagree.pixellauncherenhanced.xposed.utils.XPrefs.Xprefs
-import de.robv.android.xposed.XposedHelpers.setAdditionalInstanceField
-import de.robv.android.xposed.callbacks.XC_LoadPackage.LoadPackageParam
 
 class ThemedIcons(context: Context) : ModPack(context) {
 
@@ -52,7 +51,7 @@ class ThemedIcons(context: Context) : ModPack(context) {
     }
 
     @SuppressLint("DiscouragedApi")
-    override fun handleLoadPackage(loadPackageParam: LoadPackageParam) {
+    override fun handleLoadPackage(packageName: String, classLoader: ClassLoader) {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) return
 
         try {
@@ -105,8 +104,7 @@ class ThemedIcons(context: Context) : ModPack(context) {
                                         mContext,
                                         param2.thisObject as Drawable
                                     )
-                                    setAdditionalInstanceField(
-                                        param2.thisObject,
+                                    param2.thisObject.setExtraField(
                                         "mMonochromeIcon",
                                         monochromeIcon
                                     )
@@ -187,9 +185,7 @@ class ThemedIcons(context: Context) : ModPack(context) {
                     val iconState = thisObj.getFieldSilently("iconState") ?: return@runAfter
                     val themeController = iconState.getFieldSilently("themeController")
                     if (themeController == null) {
-                        de.robv.android.xposed.XposedHelpers.setObjectField(
-                            iconState, "themeController", getOrCreateController()
-                        )
+                        iconState.setField("themeController", getOrCreateController())
                     }
                 }
         }
@@ -216,9 +212,7 @@ class ThemedIcons(context: Context) : ModPack(context) {
 
                     val themeController = param.thisObject.getFieldSilently("themeController")
                     if (themeController == null) {
-                        de.robv.android.xposed.XposedHelpers.setObjectField(
-                            param.thisObject, "themeController", getOrCreateController2()
-                        )
+                        param.thisObject.setField("themeController", getOrCreateController2())
                     }
                 }
         }
@@ -293,9 +287,7 @@ class ThemedIcons(context: Context) : ModPack(context) {
                                                 .getConstructor(android.graphics.Bitmap::class.java, cInterface, Double::class.javaObjectType)
                                                 .newInstance(monoBitmap, colorProvider, null)
 
-                                            de.robv.android.xposed.XposedHelpers.setObjectField(
-                                                param.thisObject, "themedBitmap", newThemedBitmap
-                                            )
+                                            param.thisObject.setField("themedBitmap", newThemedBitmap)
                                         }
                                     }
                                 }

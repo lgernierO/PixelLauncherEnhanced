@@ -10,7 +10,6 @@ import com.drdisagree.pixellauncherenhanced.xposed.mods.toolkit.callMethod
 import com.drdisagree.pixellauncherenhanced.xposed.mods.toolkit.getField
 import com.drdisagree.pixellauncherenhanced.xposed.mods.toolkit.hookMethod
 import com.drdisagree.pixellauncherenhanced.xposed.utils.XPrefs.Xprefs
-import de.robv.android.xposed.callbacks.XC_LoadPackage.LoadPackageParam
 
 class DarkPageIndicator (context: Context) : ModPack(context) {
 
@@ -26,7 +25,7 @@ class DarkPageIndicator (context: Context) : ModPack(context) {
         }
     }
 
-    override fun handleLoadPackage(loadPackageParam: LoadPackageParam) {
+    override fun handleLoadPackage(packageName: String, classLoader: ClassLoader) {
         val launcherClass = findClass("com.android.launcher3.Launcher")
 
         try {

@@ -6,7 +6,6 @@ import com.drdisagree.pixellauncherenhanced.xposed.ModPack
 import com.drdisagree.pixellauncherenhanced.xposed.mods.toolkit.XposedHook.Companion.findClass
 import com.drdisagree.pixellauncherenhanced.xposed.mods.toolkit.hookMethod
 import com.drdisagree.pixellauncherenhanced.xposed.utils.XPrefs.Xprefs
-import de.robv.android.xposed.callbacks.XC_LoadPackage.LoadPackageParam
 
 class WallpaperDim(context: Context) : ModPack(context) {
 
@@ -18,7 +17,7 @@ class WallpaperDim(context: Context) : ModPack(context) {
         }
     }
 
-    override fun handleLoadPackage(loadPackageParam: LoadPackageParam) {
+    override fun handleLoadPackage(packageName: String, classLoader: ClassLoader) {
         val wallpaperColorChangedListener = findClass(
             $$"com.android.launcher3.util.WallpaperColorHints$onColorsChangedListener$1",
             suppressError = true
@@ -29,7 +28,7 @@ class WallpaperDim(context: Context) : ModPack(context) {
             .suppressError() // may not be available on a15
             .runBefore { param ->
                 if (preventWallpaperDimmingRestart) {
-                    param.setResult(null)
+                    param.result = null
                 }
             }
     }

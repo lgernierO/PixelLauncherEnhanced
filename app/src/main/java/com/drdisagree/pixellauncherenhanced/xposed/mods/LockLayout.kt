@@ -6,7 +6,7 @@ import android.view.View
 import android.widget.Toast
 import com.drdisagree.pixellauncherenhanced.R
 import com.drdisagree.pixellauncherenhanced.data.common.Constants.LOCK_LAYOUT
-import com.drdisagree.pixellauncherenhanced.xposed.HookRes.Companion.modRes
+import com.drdisagree.pixellauncherenhanced.xposed.HookRes.modRes
 import com.drdisagree.pixellauncherenhanced.xposed.ModPack
 import com.drdisagree.pixellauncherenhanced.xposed.mods.toolkit.XposedHook.Companion.findClass
 import com.drdisagree.pixellauncherenhanced.xposed.mods.toolkit.callMethod
@@ -16,7 +16,6 @@ import com.drdisagree.pixellauncherenhanced.xposed.mods.toolkit.hookConstructor
 import com.drdisagree.pixellauncherenhanced.xposed.mods.toolkit.hookMethod
 import com.drdisagree.pixellauncherenhanced.xposed.mods.toolkit.log
 import com.drdisagree.pixellauncherenhanced.xposed.utils.XPrefs.Xprefs
-import de.robv.android.xposed.callbacks.XC_LoadPackage.LoadPackageParam
 
 class LockLayout(context: Context) : ModPack(context) {
 
@@ -28,7 +27,7 @@ class LockLayout(context: Context) : ModPack(context) {
         }
     }
 
-    override fun handleLoadPackage(loadPackageParam: LoadPackageParam) {
+    override fun handleLoadPackage(packageName: String, classLoader: ClassLoader) {
         val dragControllerClass = findClass("com.android.launcher3.dragndrop.DragController")
         val launcherAppWidgetHostViewClass =
             findClass("com.android.launcher3.widget.LauncherAppWidgetHostView")
@@ -71,7 +70,7 @@ class LockLayout(context: Context) : ModPack(context) {
             .runBefore { param ->
                 if (!lockLayout) return@runBefore
 
-                val taskbarReturnPropertiesListener = param.args[param.args.size - 1]
+                val taskbarReturnPropertiesListener = param.args[param.args.size - 1]!!
 
                 taskbarReturnPropertiesListener::class.java
                     .hookMethod("updateDragShadow")

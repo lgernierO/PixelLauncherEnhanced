@@ -18,7 +18,6 @@ import com.drdisagree.pixellauncherenhanced.xposed.mods.toolkit.getFieldSilently
 import com.drdisagree.pixellauncherenhanced.xposed.mods.toolkit.hookConstructor
 import com.drdisagree.pixellauncherenhanced.xposed.mods.toolkit.hookMethod
 import com.drdisagree.pixellauncherenhanced.xposed.utils.XPrefs.Xprefs
-import de.robv.android.xposed.callbacks.XC_LoadPackage.LoadPackageParam
 
 class HotseatMod(context: Context) : ModPack(context) {
 
@@ -46,7 +45,7 @@ class HotseatMod(context: Context) : ModPack(context) {
         }
     }
 
-    override fun handleLoadPackage(loadPackageParam: LoadPackageParam) {
+    override fun handleLoadPackage(packageName: String, classLoader: ClassLoader) {
         val hotseatClass = findClass("com.android.launcher3.Hotseat")
         val workspaceClass = findClass("com.android.launcher3.Workspace")
 
@@ -99,7 +98,7 @@ class HotseatMod(context: Context) : ModPack(context) {
         ResourceHookManager
             .hookDimen()
             .whenCondition { hideDesktopSearchBar }
-            .forPackageName(loadPackageParam.packageName)
+            .forPackageName(packageName)
             .addResource("qsb_widget_height") { 0 }
             .apply()
     }

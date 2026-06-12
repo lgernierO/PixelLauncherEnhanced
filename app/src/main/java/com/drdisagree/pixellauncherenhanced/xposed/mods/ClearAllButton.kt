@@ -15,7 +15,7 @@ import com.drdisagree.pixellauncherenhanced.R
 import com.drdisagree.pixellauncherenhanced.data.common.Constants.FIXED_RECENTS_BUTTONS_WIDTH
 import com.drdisagree.pixellauncherenhanced.data.common.Constants.RECENTS_CLEAR_ALL_BUTTON
 import com.drdisagree.pixellauncherenhanced.data.common.Constants.RECENTS_REMOVE_SCREENSHOT_BUTTON
-import com.drdisagree.pixellauncherenhanced.xposed.HookRes.Companion.modRes
+import com.drdisagree.pixellauncherenhanced.xposed.HookRes.modRes
 import com.drdisagree.pixellauncherenhanced.xposed.ModPack
 import com.drdisagree.pixellauncherenhanced.xposed.mods.LauncherUtils.Companion.restartLauncher
 import com.drdisagree.pixellauncherenhanced.xposed.mods.toolkit.XposedHook.Companion.findClass
@@ -28,8 +28,6 @@ import com.drdisagree.pixellauncherenhanced.xposed.mods.toolkit.hasMethod
 import com.drdisagree.pixellauncherenhanced.xposed.mods.toolkit.hookConstructor
 import com.drdisagree.pixellauncherenhanced.xposed.mods.toolkit.hookMethod
 import com.drdisagree.pixellauncherenhanced.xposed.utils.XPrefs.Xprefs
-import de.robv.android.xposed.XposedHelpers.findMethodBestMatch
-import de.robv.android.xposed.callbacks.XC_LoadPackage.LoadPackageParam
 import java.lang.reflect.Method
 
 class ClearAllButton(context: Context) : ModPack(context) {
@@ -57,7 +55,7 @@ class ClearAllButton(context: Context) : ModPack(context) {
 
     @Suppress("DEPRECATION")
     @SuppressLint("DiscouragedApi", "UseCompatLoadingForDrawables")
-    override fun handleLoadPackage(loadPackageParam: LoadPackageParam) {
+    override fun handleLoadPackage(packageName: String, classLoader: ClassLoader) {
         val recentsViewClass = findClass("com.android.quickstep.views.RecentsView")
         val overviewModalTaskStateClass =
             findClass("com.android.launcher3.uioverrides.states.OverviewModalTaskState")
@@ -71,8 +69,9 @@ class ClearAllButton(context: Context) : ModPack(context) {
         )
         val recentsStateClass = findClass("com.android.quickstep.fallback.RecentsState")
         val overviewActionsViewClass = findClass("com.android.quickstep.views.OverviewActionsView")
-        val dismissAllTasksMethod: Method =
-            findMethodBestMatch(recentsViewClass, "dismissAllTasks", View::class.java)
+            val dismissAllTasksMethod: Method =
+                recentsViewClass!!.getDeclaredMethod("dismissAllTasks", View::class.java)
+                    ?: recentsViewClass.getMethod("dismissAllTasks", View::class.java)
 
         recentsViewClass
             .hookConstructor()

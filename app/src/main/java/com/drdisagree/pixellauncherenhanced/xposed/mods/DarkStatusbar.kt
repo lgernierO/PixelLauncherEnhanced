@@ -4,12 +4,11 @@ import android.content.Context
 import com.drdisagree.pixellauncherenhanced.data.common.Constants.LAUNCHER_DARK_STATUSBAR
 import com.drdisagree.pixellauncherenhanced.xposed.ModPack
 import com.drdisagree.pixellauncherenhanced.xposed.mods.LauncherUtils.Companion.restartLauncher
+import com.drdisagree.pixellauncherenhanced.xposed.mods.toolkit.HookParam
 import com.drdisagree.pixellauncherenhanced.xposed.mods.toolkit.XposedHook.Companion.findClass
 import com.drdisagree.pixellauncherenhanced.xposed.mods.toolkit.callMethod
 import com.drdisagree.pixellauncherenhanced.xposed.mods.toolkit.hookMethod
 import com.drdisagree.pixellauncherenhanced.xposed.utils.XPrefs.Xprefs
-import de.robv.android.xposed.XC_MethodHook
-import de.robv.android.xposed.callbacks.XC_LoadPackage.LoadPackageParam
 
 class DarkStatusbar (context: Context) : ModPack(context) {
 
@@ -25,8 +24,8 @@ class DarkStatusbar (context: Context) : ModPack(context) {
         }
     }
 
-    override fun handleLoadPackage(loadPackageParam: LoadPackageParam) {
-        fun forceDark(param: XC_MethodHook.MethodHookParam) {
+    override fun handleLoadPackage(packageName: String, classLoader: ClassLoader) {
+        fun forceDark(param: HookParam) {
             if (!darkStatusbarEnabled) return
 
             param.thisObject

@@ -12,9 +12,8 @@ import com.drdisagree.pixellauncherenhanced.xposed.mods.toolkit.getFieldSilently
 import com.drdisagree.pixellauncherenhanced.xposed.mods.toolkit.hookMethod
 import com.drdisagree.pixellauncherenhanced.xposed.mods.toolkit.setExtraField
 import com.drdisagree.pixellauncherenhanced.xposed.mods.toolkit.setField
+import com.drdisagree.pixellauncherenhanced.xposed.mods.toolkit.HookParam
 import com.drdisagree.pixellauncherenhanced.xposed.utils.XPrefs.Xprefs
-import de.robv.android.xposed.XC_MethodHook
-import de.robv.android.xposed.callbacks.XC_LoadPackage.LoadPackageParam
 
 class IconLabels(context: Context) : ModPack(context) {
 
@@ -35,10 +34,10 @@ class IconLabels(context: Context) : ModPack(context) {
         }
     }
 
-    override fun handleLoadPackage(loadPackageParam: LoadPackageParam) {
+    override fun handleLoadPackage(packageName: String, classLoader: ClassLoader) {
         val bubbleTextViewClass = findClass("com.android.launcher3.BubbleTextView")
 
-        fun XC_MethodHook.MethodHookParam.beforeHookedLabel() {
+        fun HookParam.beforeHookedLabel() {
             val mDisplay = thisObject.getField("mDisplay") as Int
             val itemInfo = args[0]
 
@@ -57,7 +56,7 @@ class IconLabels(context: Context) : ModPack(context) {
             }
         }
 
-        fun XC_MethodHook.MethodHookParam.afterHookedLabel() {
+        fun HookParam.afterHookedLabel() {
             val mDisplay = thisObject.getField("mDisplay") as Int
             val itemInfo = args[0]
 

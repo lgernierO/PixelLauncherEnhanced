@@ -8,7 +8,7 @@ import com.crossbowffs.remotepreferences.RemotePreferences
 import com.drdisagree.pixellauncherenhanced.BuildConfig
 import com.drdisagree.pixellauncherenhanced.data.common.Constants.PREF_UPDATE_EXCLUSIONS
 import com.drdisagree.pixellauncherenhanced.data.common.Constants.SHARED_PREFERENCES
-import com.drdisagree.pixellauncherenhanced.xposed.HookEntry
+import com.drdisagree.pixellauncherenhanced.xposed.PLEnhancedModule
 import com.drdisagree.pixellauncherenhanced.xposed.mods.toolkit.log
 
 object XPrefs {
@@ -38,7 +38,7 @@ object XPrefs {
             PREF_UPDATE_EXCLUSIONS.any { exclusion -> key[0]?.equals(exclusion) == true }
         ) return
 
-        HookEntry.runningMods.forEach { thisMod ->
+        PLEnhancedModule.runningMods.forEach { thisMod ->
             try {
                 thisMod.updatePrefs(*key.filterNotNull().toTypedArray())
             } catch (throwable: Throwable) {

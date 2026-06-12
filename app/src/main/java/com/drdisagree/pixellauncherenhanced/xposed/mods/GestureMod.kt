@@ -4,13 +4,12 @@ import android.content.Context
 import android.os.SystemClock
 import android.view.MotionEvent
 import com.drdisagree.pixellauncherenhanced.data.common.Constants.DOUBLE_TAP_TO_SLEEP
-import com.drdisagree.pixellauncherenhanced.xposed.HookEntry.Companion.enqueueProxyCommand
+import com.drdisagree.pixellauncherenhanced.xposed.PLEnhancedModule.Companion.enqueueProxyCommand
 import com.drdisagree.pixellauncherenhanced.xposed.ModPack
 import com.drdisagree.pixellauncherenhanced.xposed.mods.toolkit.VibrationUtils
 import com.drdisagree.pixellauncherenhanced.xposed.mods.toolkit.XposedHook.Companion.findClass
 import com.drdisagree.pixellauncherenhanced.xposed.mods.toolkit.hookMethod
 import com.drdisagree.pixellauncherenhanced.xposed.utils.XPrefs.Xprefs
-import de.robv.android.xposed.callbacks.XC_LoadPackage.LoadPackageParam
 import kotlin.math.hypot
 
 class GestureMod(context: Context) : ModPack(context) {
@@ -26,7 +25,7 @@ class GestureMod(context: Context) : ModPack(context) {
         doubleTapToSleep = Xprefs.getBoolean(DOUBLE_TAP_TO_SLEEP, false)
     }
 
-    override fun handleLoadPackage(loadPackageParam: LoadPackageParam) {
+    override fun handleLoadPackage(packageName: String, classLoader: ClassLoader) {
         val workspaceTouchListenerClass =
             findClass("com.android.launcher3.touch.WorkspaceTouchListener")
 

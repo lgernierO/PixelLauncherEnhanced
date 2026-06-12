@@ -8,6 +8,7 @@ import com.drdisagree.pixellauncherenhanced.data.common.Constants.HIDE_APPS_FROM
 import com.drdisagree.pixellauncherenhanced.data.common.Constants.SEARCH_HIDDEN_APPS
 import com.drdisagree.pixellauncherenhanced.xposed.ModPack
 import com.drdisagree.pixellauncherenhanced.xposed.mods.LauncherUtils.Companion.reloadLauncher
+import com.drdisagree.pixellauncherenhanced.xposed.mods.toolkit.HookParam
 import com.drdisagree.pixellauncherenhanced.xposed.mods.toolkit.XposedHook.Companion.findClass
 import com.drdisagree.pixellauncherenhanced.xposed.mods.toolkit.callMethod
 import com.drdisagree.pixellauncherenhanced.xposed.mods.toolkit.callMethodSilently
@@ -20,9 +21,6 @@ import com.drdisagree.pixellauncherenhanced.xposed.mods.toolkit.hookMethod
 import com.drdisagree.pixellauncherenhanced.xposed.mods.toolkit.setExtraField
 import com.drdisagree.pixellauncherenhanced.xposed.mods.toolkit.setField
 import com.drdisagree.pixellauncherenhanced.xposed.utils.XPrefs.Xprefs
-import de.robv.android.xposed.XC_MethodHook
-import de.robv.android.xposed.XposedBridge
-import de.robv.android.xposed.callbacks.XC_LoadPackage.LoadPackageParam
 import java.lang.reflect.Modifier
 import java.util.Arrays
 
@@ -62,7 +60,7 @@ class HideApps(context: Context) : ModPack(context) {
         }
     }
 
-    override fun handleLoadPackage(loadPackageParam: LoadPackageParam) {
+    override fun handleLoadPackage(packageName: String, classLoader: ClassLoader) {
         val invariantDeviceProfileClass = findClass("com.android.launcher3.InvariantDeviceProfile")
         val activityAllAppsContainerViewClass =
             findClass("com.android.launcher3.allapps.ActivityAllAppsContainerView")
@@ -215,11 +213,11 @@ class HideApps(context: Context) : ModPack(context) {
             // Method seems to be unused on newer versions of pixel launcher
             // But still hook it just in case
 
-            fun removeAppResult(param: XC_MethodHook.MethodHookParam) {
+            fun removeAppResult(param: HookParam) {
                 if (searchHiddenApps) return
 
                 val appsIndex = param.args.indexOfFirst {
-                    it::class.java.simpleName == allAppsListClass!!.simpleName
+                    (it ?: return@indexOfFirst false).javaClass.simpleName == allAppsListClass!!.simpleName
                 }
 
                 val apps = param.args[appsIndex]
@@ -256,7 +254,7 @@ class HideApps(context: Context) : ModPack(context) {
                 launcherModelClass
                     .hookMethod("enqueueModelUpdateTask")
                     .runBefore { param ->
-                        val modelUpdateTask = param.args[0]
+                        val modelUpdateTask = param.args[0]!!
                         val taskClass = modelUpdateTask::class.java
 
                         if (baseModelUpdateTaskClass != null &&
@@ -267,24 +265,11 @@ class HideApps(context: Context) : ModPack(context) {
                         if (hookedTaskClasses.contains(taskClass.name)) return@runBefore
                         hookedTaskClasses.add(taskClass.name)
 
-                        val unhookTokens = XposedBridge.hookAllMethods(
-                            taskClass,
-                            "execute",
-                            object : XC_MethodHook() {
-                                override fun beforeHookedMethod(param2: MethodHookParam) {
-                                    removeAppResult(param2)
-                                }
+                        taskClass
+                            .hookMethod("execute")
+                            .runBefore { param2 ->
+                                removeAppResult(param2)
                             }
-                        )
-
-                        param.setExtraField("unhook_tokens", unhookTokens)
-                    }
-                    .runAfter { param ->
-                        @Suppress("UNCHECKED_CAST")
-                        val unhookTokens =
-                            param.getExtraFieldSilently("unhook_tokens") as? Set<XC_MethodHook.Unhook>
-
-                        unhookTokens?.forEach { it.unhook() }
                     }
             }
         }

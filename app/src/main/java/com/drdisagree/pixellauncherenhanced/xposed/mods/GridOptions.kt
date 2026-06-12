@@ -16,7 +16,6 @@ import com.drdisagree.pixellauncherenhanced.xposed.mods.toolkit.hookMethod
 import com.drdisagree.pixellauncherenhanced.xposed.mods.toolkit.setField
 import com.drdisagree.pixellauncherenhanced.xposed.mods.toolkit.setFieldSilently
 import com.drdisagree.pixellauncherenhanced.xposed.utils.XPrefs.Xprefs
-import de.robv.android.xposed.callbacks.XC_LoadPackage
 import kotlin.math.roundToInt
 
 class GridOptions (context: Context) : ModPack(context) {
@@ -43,7 +42,7 @@ class GridOptions (context: Context) : ModPack(context) {
         }
     }
 
-    override fun handleLoadPackage(loadPackageParam: XC_LoadPackage.LoadPackageParam) {
+    override fun handleLoadPackage(packageName: String, classLoader: ClassLoader) {
         val deviceProfileClass = findClass("com.android.launcher3.DeviceProfile")
         val deviceProfileBuilderClass = findClass(
             $$"com.android.launcher3.DeviceProfile$Builder",
@@ -80,7 +79,7 @@ class GridOptions (context: Context) : ModPack(context) {
             .hookMethod("build")
             .suppressError()
             .runAfter { param ->
-                param.result.hookDeviceProfile()
+                param.result?.hookDeviceProfile()
             }
 
         invariantDeviceProfileClass

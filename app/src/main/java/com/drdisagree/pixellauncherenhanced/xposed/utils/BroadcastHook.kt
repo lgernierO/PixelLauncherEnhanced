@@ -10,7 +10,6 @@ import com.drdisagree.pixellauncherenhanced.data.common.Constants.ACTION_APP_LIS
 import com.drdisagree.pixellauncherenhanced.data.common.Constants.ACTION_HOOK_CHECK_REQUEST
 import com.drdisagree.pixellauncherenhanced.data.common.Constants.ACTION_HOOK_CHECK_RESULT
 import com.drdisagree.pixellauncherenhanced.xposed.ModPack
-import de.robv.android.xposed.callbacks.XC_LoadPackage.LoadPackageParam
 
 class BroadcastHook(context: Context) : ModPack(context) {
 
@@ -19,7 +18,7 @@ class BroadcastHook(context: Context) : ModPack(context) {
     override fun updatePrefs(vararg key: String) {}
 
     @SuppressLint("UnspecifiedRegisterReceiverFlag")
-    override fun handleLoadPackage(loadPackageParam: LoadPackageParam) {
+    override fun handleLoadPackage(packageName: String, classLoader: ClassLoader) {
         if (broadcastRegistered) return
 
         broadcastRegistered = true

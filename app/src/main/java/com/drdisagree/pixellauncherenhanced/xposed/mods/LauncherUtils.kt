@@ -5,8 +5,8 @@ import android.os.Handler
 import android.os.Looper
 import android.widget.Toast
 import com.drdisagree.pixellauncherenhanced.R
-import com.drdisagree.pixellauncherenhanced.xposed.HookEntry.Companion.enqueueProxyCommand
-import com.drdisagree.pixellauncherenhanced.xposed.HookRes.Companion.modRes
+import com.drdisagree.pixellauncherenhanced.xposed.PLEnhancedModule.Companion.enqueueProxyCommand
+import com.drdisagree.pixellauncherenhanced.xposed.HookRes.modRes
 import com.drdisagree.pixellauncherenhanced.xposed.ModPack
 import com.drdisagree.pixellauncherenhanced.xposed.mods.toolkit.XposedHook.Companion.findClass
 import com.drdisagree.pixellauncherenhanced.xposed.mods.toolkit.callMethod
@@ -18,7 +18,6 @@ import com.drdisagree.pixellauncherenhanced.xposed.mods.toolkit.hasMethod
 import com.drdisagree.pixellauncherenhanced.xposed.mods.toolkit.hookConstructor
 import com.drdisagree.pixellauncherenhanced.xposed.mods.toolkit.hookMethod
 import com.drdisagree.pixellauncherenhanced.xposed.utils.BootLoopProtector.resetCounter
-import de.robv.android.xposed.callbacks.XC_LoadPackage.LoadPackageParam
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -28,7 +27,7 @@ class LauncherUtils(context: Context) : ModPack(context) {
 
     override fun updatePrefs(vararg key: String) {}
 
-    override fun handleLoadPackage(loadPackageParam: LoadPackageParam) {
+    override fun handleLoadPackage(packageName: String, classLoader: ClassLoader) {
         ThemesClass = findClass("com.android.launcher3.util.Themes")
         GraphicsUtilsClass = findClass("com.android.launcher3.icons.GraphicsUtils")
         InvariantDeviceProfileClass = findClass("com.android.launcher3.InvariantDeviceProfile")

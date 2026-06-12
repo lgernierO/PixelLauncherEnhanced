@@ -7,6 +7,7 @@ import com.drdisagree.pixellauncherenhanced.data.common.Constants.APP_DRAWER_BAC
 import com.drdisagree.pixellauncherenhanced.data.common.Constants.DISABLE_RECENTS_LIVE_TILE
 import com.drdisagree.pixellauncherenhanced.data.common.Constants.RECENTS_BACKGROUND_OPACITY
 import com.drdisagree.pixellauncherenhanced.xposed.ModPack
+import com.drdisagree.pixellauncherenhanced.xposed.mods.toolkit.HookParam
 import com.drdisagree.pixellauncherenhanced.xposed.mods.toolkit.XposedHook.Companion.findClass
 import com.drdisagree.pixellauncherenhanced.xposed.mods.toolkit.callMethod
 import com.drdisagree.pixellauncherenhanced.xposed.mods.toolkit.callMethodSilently
@@ -17,8 +18,6 @@ import com.drdisagree.pixellauncherenhanced.xposed.mods.toolkit.hookMethod
 import com.drdisagree.pixellauncherenhanced.xposed.mods.toolkit.setField
 import com.drdisagree.pixellauncherenhanced.xposed.mods.toolkit.setFieldSilently
 import com.drdisagree.pixellauncherenhanced.xposed.utils.XPrefs.Xprefs
-import de.robv.android.xposed.XC_MethodHook
-import de.robv.android.xposed.callbacks.XC_LoadPackage.LoadPackageParam
 
 class OpacityModifier(context: Context) : ModPack(context) {
 
@@ -34,7 +33,7 @@ class OpacityModifier(context: Context) : ModPack(context) {
         }
     }
 
-    override fun handleLoadPackage(loadPackageParam: LoadPackageParam) {
+    override fun handleLoadPackage(packageName: String, classLoader: ClassLoader) {
         val allAppsStateClass = findClass("com.android.launcher3.uioverrides.states.AllAppsState")
         val overviewStateClass = findClass("com.android.launcher3.uioverrides.states.OverviewState")
         val quickSwitchStateClass =
@@ -55,7 +54,7 @@ class OpacityModifier(context: Context) : ModPack(context) {
             suppressError = true
         )
 
-        fun XC_MethodHook.MethodHookParam.updateScrimColorVariable() {
+        fun HookParam.updateScrimColorVariable() {
             val mScrimColor = thisObject.getFieldSilently("mScrimColor") as? Int
 
             if (mScrimColor != null) {
@@ -132,7 +131,7 @@ class OpacityModifier(context: Context) : ModPack(context) {
                         )
                     } else {
                         param.result = getScrimColors(
-                            param.result,
+                            param.result!!,
                             scrimColorsClass!!,
                             appDrawerBackgroundOpacity
                         )
@@ -163,7 +162,7 @@ class OpacityModifier(context: Context) : ModPack(context) {
                     )
                 } else {
                     param.result = getScrimColors(
-                        param.result,
+                        param.result!!,
                         scrimColorsClass!!,
                         recentsBackgroundOpacity
                     )
@@ -191,7 +190,7 @@ class OpacityModifier(context: Context) : ModPack(context) {
                         )
                     } else {
                         param.result = getScrimColors(
-                            param.result,
+                            param.result!!,
                             scrimColorsClass!!,
                             recentsBackgroundOpacity
                         )
@@ -211,7 +210,7 @@ class OpacityModifier(context: Context) : ModPack(context) {
                     )
                 } else {
                     param.result = getScrimColors(
-                        param.result,
+                        param.result!!,
                         scrimColorsClass!!,
                         recentsBackgroundOpacity
                     )
@@ -230,7 +229,7 @@ class OpacityModifier(context: Context) : ModPack(context) {
                     )
                 } else {
                     param.result = getScrimColors(
-                        param.result,
+                        param.result!!,
                         scrimColorsClass!!,
                         recentsBackgroundOpacity
                     )

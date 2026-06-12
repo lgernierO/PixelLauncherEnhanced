@@ -19,7 +19,7 @@ preferenceKtx = "1.2.1"
 recyclerview = "1.4.0"
 recyclerviewSelection = "1.2.0"
 remotepreferences = "0.8"
-xposedbridge = "main-SNAPSHOT"
+libxposedApi = "101.0.0"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -42,7 +42,7 @@ remotepreferences = { module = "com.crossbowffs.remotepreferences:remotepreferen
 su-core = { module = "com.github.topjohnwu.libsu:core", version.ref = "libsuVersion" }
 su-nio = { module = "com.github.topjohnwu.libsu:nio", version.ref = "libsuVersion" }
 su-service = { module = "com.github.topjohnwu.libsu:service", version.ref = "libsuVersion" }
-xposedbridge = { module = "com.github.Mahmud0808:XposedBridge", version.ref = "xposedbridge" }
+xposedbridge = { module = "io.github.libxposed:api", version.ref = "libxposedApi" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

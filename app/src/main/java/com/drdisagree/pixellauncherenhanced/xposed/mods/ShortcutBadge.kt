@@ -10,7 +10,6 @@ import com.drdisagree.pixellauncherenhanced.xposed.mods.toolkit.hookConstructor
 import com.drdisagree.pixellauncherenhanced.xposed.mods.toolkit.hookMethod
 import com.drdisagree.pixellauncherenhanced.xposed.mods.toolkit.setField
 import com.drdisagree.pixellauncherenhanced.xposed.utils.XPrefs.Xprefs
-import de.robv.android.xposed.callbacks.XC_LoadPackage.LoadPackageParam
 
 class ShortcutBadge(context: Context) : ModPack(context) {
 
@@ -26,7 +25,7 @@ class ShortcutBadge(context: Context) : ModPack(context) {
         }
     }
 
-    override fun handleLoadPackage(loadPackageParam: LoadPackageParam) {
+    override fun handleLoadPackage(packageName: String, classLoader: ClassLoader) {
         val bubbleTextViewClass = findClass("com.android.launcher3.BubbleTextView")
         val bitmapInfoClass = findClass("com.android.launcher3.icons.BitmapInfo")
 

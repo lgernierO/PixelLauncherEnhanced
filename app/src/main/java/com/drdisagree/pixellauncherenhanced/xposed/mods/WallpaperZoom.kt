@@ -8,7 +8,6 @@ import com.drdisagree.pixellauncherenhanced.xposed.mods.toolkit.getField
 import com.drdisagree.pixellauncherenhanced.xposed.mods.toolkit.hookConstructor
 import com.drdisagree.pixellauncherenhanced.xposed.mods.toolkit.hookMethod
 import com.drdisagree.pixellauncherenhanced.xposed.utils.XPrefs.Xprefs
-import de.robv.android.xposed.callbacks.XC_LoadPackage.LoadPackageParam
 
 class WallpaperZoom(context: Context) : ModPack(context) {
 
@@ -20,7 +19,7 @@ class WallpaperZoom(context: Context) : ModPack(context) {
         }
     }
 
-    override fun handleLoadPackage(loadPackageParam: LoadPackageParam) {
+    override fun handleLoadPackage(packageName: String, classLoader: ClassLoader) {
         val baseDepthControllerClass = findClass(
             "com.android.quickstep.util.BaseDepthController",
             "com.android.quickstep.util.BaseDepthControllerImpl",

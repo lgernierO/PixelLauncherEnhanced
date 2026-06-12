@@ -20,7 +20,6 @@ import com.drdisagree.pixellauncherenhanced.xposed.mods.toolkit.callMethod
 import com.drdisagree.pixellauncherenhanced.xposed.mods.toolkit.getFieldSilently
 import com.drdisagree.pixellauncherenhanced.xposed.mods.toolkit.hookMethod
 import com.drdisagree.pixellauncherenhanced.xposed.utils.XPrefs
-import de.robv.android.xposed.callbacks.XC_LoadPackage
 import java.lang.ref.WeakReference
 
 /**
@@ -50,7 +49,7 @@ class QuickLaunch(context: Context) : ModPack(context) {
 		XPrefs.Xprefs.apply { quickLaunch = getBoolean(QUICK_LAUNCH, false) }
 	}
 
-	override fun handleLoadPackage(loadPackageParam: XC_LoadPackage.LoadPackageParam) {
+	override fun handleLoadPackage(packageName: String, classLoader: ClassLoader) {
 		// Core: hook container inflation & keep lightweight references to list / recycler / search box
 		listOf(
 			"com.google.android.apps.nexuslauncher.allapps.SearchContainerView", // Pixel specific

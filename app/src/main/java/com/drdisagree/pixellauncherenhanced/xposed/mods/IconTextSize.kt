@@ -13,7 +13,6 @@ import com.drdisagree.pixellauncherenhanced.xposed.mods.toolkit.hookMethod
 import com.drdisagree.pixellauncherenhanced.xposed.mods.toolkit.setField
 import com.drdisagree.pixellauncherenhanced.xposed.mods.toolkit.setFieldSilently
 import com.drdisagree.pixellauncherenhanced.xposed.utils.XPrefs.Xprefs
-import de.robv.android.xposed.callbacks.XC_LoadPackage.LoadPackageParam
 
 class IconTextSize(context: Context) : ModPack(context) {
 
@@ -34,7 +33,7 @@ class IconTextSize(context: Context) : ModPack(context) {
         }
     }
 
-    override fun handleLoadPackage(loadPackageParam: LoadPackageParam) {
+    override fun handleLoadPackage(packageName: String, classLoader: ClassLoader) {
         val deviceProfileClass = findClass("com.android.launcher3.DeviceProfile")
         val deviceProfileBuilderClass = findClass(
             $$"com.android.launcher3.DeviceProfile$Builder",
@@ -177,7 +176,7 @@ class IconTextSize(context: Context) : ModPack(context) {
             .suppressError()
             .runAfter { param ->
                 try {
-                    param.result.hookDeviceProfile()
+                    param.result?.hookDeviceProfile()
                 } catch (_: Throwable) {
                 }
             }

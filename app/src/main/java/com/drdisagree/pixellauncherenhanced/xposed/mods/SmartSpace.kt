@@ -19,7 +19,6 @@ import com.drdisagree.pixellauncherenhanced.xposed.mods.toolkit.hookMethod
 import com.drdisagree.pixellauncherenhanced.xposed.mods.toolkit.setField
 import com.drdisagree.pixellauncherenhanced.xposed.mods.toolkit.setFieldSilently
 import com.drdisagree.pixellauncherenhanced.xposed.utils.XPrefs.Xprefs
-import de.robv.android.xposed.callbacks.XC_LoadPackage.LoadPackageParam
 import java.lang.reflect.Modifier
 
 class SmartSpace(context: Context) : ModPack(context) {
@@ -37,7 +36,7 @@ class SmartSpace(context: Context) : ModPack(context) {
     }
 
     @SuppressLint("DiscouragedApi")
-    override fun handleLoadPackage(loadPackageParam: LoadPackageParam) {
+    override fun handleLoadPackage(packageName: String, classLoader: ClassLoader) {
         val nexusLauncherActivityClass = findClass(
             "com.google.android.apps.nexuslauncher.NexusLauncherActivity",
             suppressError = true

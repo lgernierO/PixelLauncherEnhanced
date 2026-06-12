@@ -8,18 +8,17 @@ import com.drdisagree.pixellauncherenhanced.BuildConfig
 import com.drdisagree.pixellauncherenhanced.xposed.ModPack
 import com.drdisagree.pixellauncherenhanced.xposed.mods.toolkit.XposedHook.Companion.findClass
 import com.drdisagree.pixellauncherenhanced.xposed.mods.toolkit.callMethod
+import com.drdisagree.pixellauncherenhanced.xposed.mods.toolkit.callStaticMethod
 import com.drdisagree.pixellauncherenhanced.xposed.mods.toolkit.hasMethod
 import com.drdisagree.pixellauncherenhanced.xposed.mods.toolkit.hookConstructor
 import com.drdisagree.pixellauncherenhanced.xposed.mods.toolkit.hookMethod
 import com.drdisagree.pixellauncherenhanced.xposed.mods.toolkit.log
-import de.robv.android.xposed.XposedHelpers.callStaticMethod
-import de.robv.android.xposed.callbacks.XC_LoadPackage.LoadPackageParam
 
 class IconUpdater(context: Context) : ModPack(context) {
 
     override fun updatePrefs(vararg key: String) {}
 
-    override fun handleLoadPackage(loadPackageParam: LoadPackageParam) {
+    override fun handleLoadPackage(packageName: String, classLoader: ClassLoader) {
         val launcherModelClass = findClass("com.android.launcher3.LauncherModel")
         val baseActivityClass = findClass("com.android.launcher3.BaseActivity")
         val packageUserKeyClass = findClass("com.android.launcher3.util.PackageUserKey")
@@ -32,10 +31,9 @@ class IconUpdater(context: Context) : ModPack(context) {
                     try {
                         if (paramThisObject == null) return@runAfter
 
-                        val myUserId = callStaticMethod(
-                            UserHandle::class.java,
+                        val myUserId = UserHandle::class.java.callStaticMethod(
                             "getUserId",
-                            Process.myUid()
+                            Process::class.java.getMethod("myUid").invoke(null)
                         ) as Int
 
                         when (type) {
