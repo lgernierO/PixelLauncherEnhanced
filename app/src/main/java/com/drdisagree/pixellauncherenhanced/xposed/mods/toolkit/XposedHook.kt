@@ -452,8 +452,8 @@ fun Any?.callMethod(methodName: String, parameterTypes: Array<Class<*>>, vararg 
 
 fun Any?.callMethodSilently(methodName: String): Any? {
     if (this == null) return null
+    val m = findMethodOrNull(this.javaClass, methodName, 0) ?: return null
     return try {
-        val m = findMethod(this.javaClass, methodName, 0)
         m.isAccessible = true
         m.invoke(this)
     } catch (_: Throwable) {
@@ -463,8 +463,8 @@ fun Any?.callMethodSilently(methodName: String): Any? {
 
 fun Any?.callMethodSilently(methodName: String, vararg args: Any?): Any? {
     if (this == null) return null
+    val m = findMethodOrNull(this.javaClass, methodName, args.size) ?: return null
     return try {
-        val m = findMethod(this.javaClass, methodName, args.size)
         m.isAccessible = true
         m.invoke(this, *args)
     } catch (_: Throwable) {
@@ -538,8 +538,8 @@ fun Class<*>?.callStaticMethod(
 
 fun Class<*>?.callStaticMethodSilently(methodName: String): Any? {
     if (this == null) return null
+    val m = findMethodOrNull(this, methodName, 0) ?: return null
     return try {
-        val m = findMethod(this, methodName, 0)
         m.isAccessible = true
         m.invoke(null)
     } catch (_: Throwable) {
@@ -549,8 +549,8 @@ fun Class<*>?.callStaticMethodSilently(methodName: String): Any? {
 
 fun Class<*>?.callStaticMethodSilently(methodName: String, vararg args: Any?): Any? {
     if (this == null) return null
+    val m = findMethodOrNull(this, methodName, args.size) ?: return null
     return try {
-        val m = findMethod(this, methodName, args.size)
         m.isAccessible = true
         m.invoke(null, *args)
     } catch (_: Throwable) {
@@ -582,8 +582,8 @@ fun Any?.getField(fieldName: String): Any {
 
 fun Any?.getFieldSilently(fieldName: String): Any? {
     if (this == null) return null
+    val f = findFieldOrNull(this.javaClass, fieldName) ?: return null
     return try {
-        val f = findField(this.javaClass, fieldName)
         f.isAccessible = true
         f.get(this)
     } catch (_: Throwable) {
@@ -600,8 +600,8 @@ fun Any?.setField(fieldName: String, value: Any?) {
 
 fun Any?.setFieldSilently(fieldName: String, value: Any?): Boolean {
     if (this == null) return false
+    val f = findFieldOrNull(this.javaClass, fieldName) ?: return false
     return try {
-        val f = findField(this.javaClass, fieldName)
         f.isAccessible = true
         f.set(this, value)
         true
@@ -619,8 +619,8 @@ fun Class<*>?.getStaticField(fieldName: String): Any {
 
 fun Class<*>?.getStaticFieldSilently(fieldName: String): Any? {
     if (this == null) return null
+    val f = findFieldOrNull(this, fieldName) ?: return null
     return try {
-        val f = findField(this, fieldName)
         f.isAccessible = true
         f.get(null)
     } catch (_: Throwable) {
@@ -637,8 +637,8 @@ fun Class<*>?.setStaticField(fieldName: String, value: Any?) {
 
 fun Class<*>?.setStaticFieldSilently(fieldName: String, value: Any?) {
     if (this == null) return
+    val f = findFieldOrNull(this, fieldName) ?: return
     try {
-        val f = findField(this, fieldName)
         f.isAccessible = true
         f.set(null, value)
     } catch (_: Throwable) {
@@ -694,10 +694,10 @@ fun Any?.setExtraField(fieldName: String, value: Any?) {
     extraFields.getOrPut(this) { mutableMapOf() }[fieldName] = value
 }
 
-private val methodCache = java.util.concurrent.ConcurrentHashMap<String, Method?>()
-private val fieldCache = java.util.concurrent.ConcurrentHashMap<String, java.lang.reflect.Field?>()
+private val methodCache = java.util.Collections.synchronizedMap(java.util.HashMap<String, Method?>())
+private val fieldCache = java.util.Collections.synchronizedMap(java.util.HashMap<String, java.lang.reflect.Field?>())
 
-private fun findMethod(clazz: Class<*>, name: String, paramCount: Int): Method {
+private fun findMethodOrNull(clazz: Class<*>, name: String, paramCount: Int): Method? {
     val key = "${clazz.name}#$name($paramCount)"
     return methodCache.getOrPut(key) {
         var c: Class<*>? = clazz
@@ -707,10 +707,10 @@ private fun findMethod(clazz: Class<*>, name: String, paramCount: Int): Method {
             c = c.superclass
         }
         null
-    } ?: throw NoSuchMethodError("Method not found: $name with $paramCount params in ${clazz.name}")
+    }
 }
 
-private fun findField(clazz: Class<*>, name: String): java.lang.reflect.Field {
+private fun findFieldOrNull(clazz: Class<*>, name: String): java.lang.reflect.Field? {
     val key = "${clazz.name}#$name"
     return fieldCache.getOrPut(key) {
         var c: Class<*>? = clazz
@@ -720,5 +720,15 @@ private fun findField(clazz: Class<*>, name: String): java.lang.reflect.Field {
             c = c.superclass
         }
         null
-    } ?: throw NoSuchFieldError("Field not found: $name in ${clazz.name}")
+    }
+}
+
+private fun findMethod(clazz: Class<*>, name: String, paramCount: Int): Method {
+    return findMethodOrNull(clazz, name, paramCount)
+        ?: throw NoSuchMethodError("Method not found: $name with $paramCount params in ${clazz.name}")
+}
+
+private fun findField(clazz: Class<*>, name: String): java.lang.reflect.Field {
+    return findFieldOrNull(clazz, name)
+        ?: throw NoSuchFieldError("Field not found: $name in ${clazz.name}")
 }
