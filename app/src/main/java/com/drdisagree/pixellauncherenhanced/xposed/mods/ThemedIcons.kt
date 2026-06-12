@@ -173,11 +173,11 @@ class ThemedIcons(context: Context) : ModPack(context) {
         // Hook ThemeManager.verifyIconState() to inject MonoIconThemeController
         // into iconState.themeController when it's null
         if (themeManagerClass != null && monoIconThemeControllerClass != null) {
-            val monoControllerLazy = java.lang.ref.SoftReference<Any?>(null)
+            var monoControllerCache: Any? = null
 
             fun getOrCreateController(): Any {
-                return monoControllerLazy.get() ?: monoIconThemeControllerClass.getConstructor().newInstance().also {
-                    monoControllerLazy.set(it)
+                return monoControllerCache ?: monoIconThemeControllerClass.getConstructor().newInstance().also {
+                    monoControllerCache = it
                 }
             }
 
@@ -205,11 +205,11 @@ class ThemedIcons(context: Context) : ModPack(context) {
         )
 
         if (baseIconFactoryClass != null && monoIconThemeControllerClass != null) {
-            val monoControllerLazy2 = java.lang.ref.SoftReference<Any?>(null)
+            var monoControllerCache2: Any? = null
 
             fun getOrCreateController2(): Any {
-                return monoControllerLazy2.get() ?: monoIconThemeControllerClass.getConstructor().newInstance().also {
-                    monoControllerLazy2.set(it)
+                return monoControllerCache2 ?: monoIconThemeControllerClass.getConstructor().newInstance().also {
+                    monoControllerCache2 = it
                 }
             }
 
