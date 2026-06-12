@@ -264,12 +264,13 @@ class ThemedIcons(context: Context) : ModPack(context) {
                                     .wrap(mContext, android.graphics.drawable.BitmapDrawable(mContext.resources, softwareIcon))
 
                                 val monoBitmap = try {
-                                    // MonochromeIconFactory stores alpha bitmap in mAlphaBitmap
                                     val bitmapField = monoDrawable.javaClass.getDeclaredField("mAlphaBitmap")
                                     bitmapField.isAccessible = true
-                                    bitmapField.get(monoDrawable) as? android.graphics.Bitmap
-                                } catch (_: Throwable) {
-                                    // Fallback: draw to a new bitmap
+                                    val bmp = bitmapField.get(monoDrawable) as? android.graphics.Bitmap
+                                    log("[ThemedIcons] newIcon: mAlphaBitmap=${bmp != null}, config=${bmp?.config}")
+                                    bmp
+                                } catch (e: Throwable) {
+                                    log("[ThemedIcons] newIcon: mAlphaBitmap reflection failed: ${e.message}, fields=${monoDrawable.javaClass.declaredFields.map { it.name }}")
                                     val w = monoDrawable.intrinsicWidth.coerceAtLeast(1)
                                     val h = monoDrawable.intrinsicHeight.coerceAtLeast(1)
                                     val bmp = android.graphics.Bitmap.createBitmap(w, h, android.graphics.Bitmap.Config.ALPHA_8)
@@ -302,7 +303,7 @@ class ThemedIcons(context: Context) : ModPack(context) {
                                         )
                                         log("[ThemedIcons] newIcon: created MonoThemedBitmap successfully")
                                     } else {
-                                        log("[ThemedIcons] newIcon: failed - missing classes")
+                                        log("[ThemedIcons] newIcon: missing - monoThemedBitmap=${monoThemedBitmapClass != null}, cInterface=${cInterface != null}, colorProvider=${colorProvider != null}")
                                     }
                                 } else {
                                     log("[ThemedIcons] newIcon: monoBitmap is null, monoDrawable=${monoDrawable.javaClass.simpleName}")
