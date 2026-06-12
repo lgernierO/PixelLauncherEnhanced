@@ -170,29 +170,62 @@ class ThemedIcons(context: Context) : ModPack(context) {
             suppressError = true
         )
 
-        // Hook ThemeManager.parseIconState() to inject MonoIconThemeController at the source
-        // This ensures themeController is non-null BEFORE it's passed to BaseIconFactory constructors
-        //解决了图标缓存导致的主题图标逐渐失效问题
+        // Hook ThemeManager.verifyIconState() to inject MonoIconThemeController
+        // into iconState.themeController when it's null
         if (themeManagerClass != null && monoIconThemeControllerClass != null) {
-            themeManagerClass.hookMethod("parseIconState")
+            val monoControllerLazy = java.lang.ref.SoftReference<Any?>(null)
+
+            fun getOrCreateController(): Any {
+                return monoControllerLazy.get() ?: monoIconThemeControllerClass.getConstructor().newInstance().also {
+                    monoControllerLazy.set(it)
+                }
+            }
+
+            themeManagerClass.hookMethod("verifyIconState")
                 .suppressError()
                 .runAfter { param ->
                     if (!appDrawerThemedIcons) return@runAfter
 
-                    val iconState = param.result
-                    if (iconState != null) {
-                        val themeController = iconState.getFieldSilently("themeController")
-                        log("[ThemedIcons] parseIconState: themeController=${themeController != null}")
-                        if (themeController == null) {
-                            val newController = monoIconThemeControllerClass.getConstructor().newInstance()
-                            iconState.setField("themeController", newController)
-                            log("[ThemedIcons] parseIconState: injected MonoIconThemeController")
-                        }
+                    val thisObj = param.thisObject
+                    val iconState = thisObj.getFieldSilently("iconState") ?: return@runAfter
+                    val themeController = iconState.getFieldSilently("themeController")
+                    if (themeController == null) {
+                        de.robv.android.xposed.XposedHelpers.setObjectField(
+                            iconState, "themeController", getOrCreateController()
+                        )
                     }
                 }
         }
 
-        // ROOT FIX: Hook BitmapInfo.newIcon() to force themed rendering
+        // Also hook BaseIconFactory constructor as fallback - use XposedHelpers directly
+        // for final field injection which is more reliable across Android versions
+        val baseIconFactoryClass = findClass(
+            "com.android.launcher3.icons.BaseIconFactory",
+            suppressError = true
+        )
+
+        if (baseIconFactoryClass != null && monoIconThemeControllerClass != null) {
+            val monoControllerLazy2 = java.lang.ref.SoftReference<Any?>(null)
+
+            fun getOrCreateController2(): Any {
+                return monoControllerLazy2.get() ?: monoIconThemeControllerClass.getConstructor().newInstance().also {
+                    monoControllerLazy2.set(it)
+                }
+            }
+
+            baseIconFactoryClass.hookConstructor()
+                .suppressError()
+                .runAfter { param ->
+                    if (!appDrawerThemedIcons) return@runAfter
+
+                    val themeController = param.thisObject.getFieldSilently("themeController")
+                    if (themeController == null) {
+                        de.robv.android.xposed.XposedHelpers.setObjectField(
+                            param.thisObject, "themeController", getOrCreateController2()
+                        )
+                    }
+                }
+        }
         // When themedBitmap is NOT_SUPPORTED but our setting is enabled,
         // create MonoThemedBitmap using our MonochromeIconFactory
         val bitmapInfoClass = findClass(
