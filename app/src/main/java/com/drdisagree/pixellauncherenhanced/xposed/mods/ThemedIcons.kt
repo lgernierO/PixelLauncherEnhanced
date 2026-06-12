@@ -263,18 +263,20 @@ class ThemedIcons(context: Context) : ModPack(context) {
                                 val monoDrawable = MonochromeIconFactory(softwareIcon.width, false)
                                     .wrap(mContext, android.graphics.drawable.BitmapDrawable(mContext.resources, softwareIcon))
 
-                                val monoBitmap = when (monoDrawable) {
-                                    is android.graphics.drawable.BitmapDrawable -> monoDrawable.bitmap?.copy(android.graphics.Bitmap.Config.ALPHA_8, false)
-                                    else -> {
-                                        // ClippedMonoDrawable - draw to bitmap manually
-                                        val w = monoDrawable.intrinsicWidth.coerceAtLeast(1)
-                                        val h = monoDrawable.intrinsicHeight.coerceAtLeast(1)
-                                        val bmp = android.graphics.Bitmap.createBitmap(w, h, android.graphics.Bitmap.Config.ALPHA_8)
-                                        val canvas = android.graphics.Canvas(bmp)
-                                        monoDrawable.setBounds(0, 0, w, h)
-                                        monoDrawable.draw(canvas)
-                                        bmp
-                                    }
+                                val monoBitmap = try {
+                                    // MonochromeIconFactory stores alpha bitmap in mAlphaBitmap
+                                    val bitmapField = monoDrawable.javaClass.getDeclaredField("mAlphaBitmap")
+                                    bitmapField.isAccessible = true
+                                    bitmapField.get(monoDrawable) as? android.graphics.Bitmap
+                                } catch (_: Throwable) {
+                                    // Fallback: draw to a new bitmap
+                                    val w = monoDrawable.intrinsicWidth.coerceAtLeast(1)
+                                    val h = monoDrawable.intrinsicHeight.coerceAtLeast(1)
+                                    val bmp = android.graphics.Bitmap.createBitmap(w, h, android.graphics.Bitmap.Config.ALPHA_8)
+                                    val canvas = android.graphics.Canvas(bmp)
+                                    monoDrawable.setBounds(0, 0, w, h)
+                                    monoDrawable.draw(canvas)
+                                    bmp
                                 }
 
                                 if (monoBitmap != null) {
