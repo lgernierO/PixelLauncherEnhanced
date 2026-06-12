@@ -308,7 +308,8 @@ class ThemedIcons(context: Context) : ModPack(context) {
                                         }
 
                                         if (colorProvider != null) {
-                                            // Try both constructor signatures
+                                            val constructors = monoThemedBitmapClass.declaredConstructors
+                                            log("[ThemedIcons] newIcon: MonoThemedBitmap constructors: ${constructors.map { "${it.parameterTypes.map { p -> p.simpleName }}" }}")
                                             val constructor = try {
                                                 monoThemedBitmapClass.getConstructor(
                                                     android.graphics.Bitmap::class.java, cInterface, Double::class.javaPrimitiveType
