@@ -12,7 +12,6 @@ import com.drdisagree.pixellauncherenhanced.xposed.mods.toolkit.HookParam
 import com.drdisagree.pixellauncherenhanced.xposed.mods.toolkit.XposedHook.Companion.findClass
 import com.drdisagree.pixellauncherenhanced.xposed.mods.toolkit.callMethod
 import com.drdisagree.pixellauncherenhanced.xposed.mods.toolkit.callMethodSilently
-import com.drdisagree.pixellauncherenhanced.xposed.mods.toolkit.getExtraFieldSilently
 import com.drdisagree.pixellauncherenhanced.xposed.mods.toolkit.getField
 import com.drdisagree.pixellauncherenhanced.xposed.mods.toolkit.getFieldSilently
 import com.drdisagree.pixellauncherenhanced.xposed.mods.toolkit.hasMethod
@@ -23,6 +22,7 @@ import com.drdisagree.pixellauncherenhanced.xposed.mods.toolkit.setField
 import com.drdisagree.pixellauncherenhanced.xposed.utils.XPrefs.Xprefs
 import java.lang.reflect.Modifier
 import java.util.Arrays
+import java.util.Collections
 
 class HideApps(context: Context) : ModPack(context) {
 
@@ -219,6 +219,8 @@ class HideApps(context: Context) : ModPack(context) {
                 val appsIndex = param.args.indexOfFirst {
                     (it ?: return@indexOfFirst false).javaClass.simpleName == allAppsListClass!!.simpleName
                 }
+
+                if (appsIndex < 0) return
 
                 val apps = param.args[appsIndex]
                 val data = apps.getField("data") as ArrayList<*>
