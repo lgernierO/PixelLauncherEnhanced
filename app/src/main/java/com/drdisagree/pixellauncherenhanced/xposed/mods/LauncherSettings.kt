@@ -64,6 +64,7 @@ class LauncherSettings(context: Context) : ModPack(context) {
     @Suppress("deprecation")
     @SuppressLint("DiscouragedApi", "UseCompatLoadingForDrawables")
     override fun handleLoadPackage(packageName: String, classLoader: ClassLoader) {
+        android.util.Log.d("PLEnhanced", "LauncherSettings.handleLoadPackage called, entryInPopup=$entryInPopup, toggleHideAppsInPopup=$toggleHideAppsInPopup")
         val launcherSettingsFragmentClass = findClass(
             $$"com.android.launcher3.SettingsActivity$LauncherSettingsFragment",
             $$"com.android.launcher3.settings.SettingsActivity$LauncherSettingsFragment"
@@ -231,24 +232,30 @@ class LauncherSettings(context: Context) : ModPack(context) {
             "com.google.android.apps.nexuslauncher.customize.OptionsPopupDialog\$PopupView",
             "com.android.launcher3.views.OptionsPopupView"
         )
+        val arrowPopupClass = findClass("com.android.launcher3.popup.ArrowPopup", suppressError = true)
         val optionItemClass =
             findClass($$"com.android.launcher3.views.OptionsPopupView$OptionItem")!!
         val launcherEventEnum =
             findClass($$"com.android.launcher3.logging.StatsLogManager$LauncherEvent")!!
 
         optionsPopupViewClass
-            .hookMethod("show")
+            .hookConstructor()
             .suppressError()
             .runAfter { param ->
                 if (!entryInPopup && !toggleHideAppsInPopup) return@runAfter
+                android.util.Log.d("PLEnhanced", "OptionsPopupView constructor called, injecting items")
 
-                val popupView = param.thisObject ?: return@runAfter
-                val context = (popupView as? android.view.View)?.context ?: return@runAfter
-                val mItemMap = popupView.getFieldSilently("mItemMap") as? android.util.ArrayMap<*, *> ?: return@runAfter
+                val popupView = param.thisObject
+                if (popupView == null) { android.util.Log.d("PLEnhanced", "popupView is null"); return@runAfter }
+                val context = (popupView as? android.view.View)?.context
+                if (context == null) { android.util.Log.d("PLEnhanced", "context is null"); return@runAfter }
+                val mItemMap = popupView.getFieldSilently("mItemMap") as? android.util.ArrayMap<*, *>
+                if (mItemMap == null) { android.util.Log.d("PLEnhanced", "mItemMap is null"); return@runAfter }
 
                 val eventId = launcherEventEnum.enumConstants?.let { constants ->
                     constants.firstOrNull { it.toString() == "LAUNCHER_SETTINGS_BUTTON_TAP_OR_LONGPRESS" }
-                } ?: return@runAfter
+                }
+                if (eventId == null) { android.util.Log.d("PLEnhanced", "eventId is null"); return@runAfter }
 
                 fun createOptionItem(
                     label: CharSequence,
@@ -267,90 +274,67 @@ class LauncherSettings(context: Context) : ModPack(context) {
                     }
                 }
 
-                if (toggleHideAppsInPopup) {
-                    val clickListener = View.OnLongClickListener {
-                        setUnhideAllApps(!HideApps.SHOULD_UNHIDE_ALL_APPS)
-                        true
-                    }
+                android.util.Log.d("PLEnhanced", "popupView=${popupView.javaClass.simpleName}, context=$context, mItemMap size=${mItemMap.size}")
 
-                    val optionItem = createOptionItem(
-                        if (HideApps.SHOULD_UNHIDE_ALL_APPS) modRes.getString(R.string.hide_apps)
-                        else modRes.getString(R.string.unhide_apps),
-                        if (HideApps.SHOULD_UNHIDE_ALL_APPS) modRes.getDrawable(R.drawable.ic_visibility_lock)
-                        else modRes.getDrawable(R.drawable.ic_visibility),
-                        clickListener
-                    )
+                val popupViewAsView = popupView as? android.view.View ?: return@runAfter
+                popupViewAsView.postDelayed({
+                    android.util.Log.d("PLEnhanced", "postDelayed: adding custom items")
 
-                    if (optionItem != null) {
+                    fun addPopupItem(label: CharSequence, icon: Drawable, clickListener: View.OnLongClickListener) {
                         try {
                             val inflater = android.view.LayoutInflater.from(context)
                             val popupItemLayout = context.resources.getIdentifier(
                                 "wallpaper_options_popup_item", "layout", context.packageName
                             )
-                            if (popupItemLayout != 0) {
-                                val container = popupView as? android.view.ViewGroup
-                                val itemView = inflater.inflate(popupItemLayout, container, false)
-                                val iconView = itemView.findViewById<android.view.View>(
-                                    context.resources.getIdentifier("icon", "id", context.packageName)
-                                )
-                                val textView = itemView.findViewById<android.widget.TextView>(
-                                    context.resources.getIdentifier("bubble_text", "id", context.packageName)
-                                )
-                                iconView?.background = (optionItem.getFieldSilently("icon") as? Drawable)
-                                textView?.text = optionItem.getFieldSilently("label") as? CharSequence
-                                container?.addView(itemView)
-                                (mItemMap as? android.util.ArrayMap<Any, Any>)?.put(itemView, optionItem)
-                                itemView.setOnClickListener(popupView as? android.view.View.OnClickListener)
-                                itemView.setOnLongClickListener(popupView as? View.OnLongClickListener)
-                            }
-                        } catch (_: Throwable) {
-                        }
-                    }
-                }
-
-                if (entryInPopup) {
-                    val clickListener = object : View.OnLongClickListener {
-                        override fun onLongClick(p0: View?): Boolean {
-                            val launchIntent: Intent = mContext.packageManager
-                                .getLaunchIntentForPackage(BuildConfig.APPLICATION_ID)
-                                ?: return false
-                            mContext.startActivity(launchIntent)
-                            return true
-                        }
-                    }
-
-                    val optionItem = createOptionItem(
-                        modRes.getString(R.string.app_name_shortened),
-                        modRes.getDrawable(R.drawable.ic_launcher_foreground),
-                        clickListener
-                    )
-
-                    if (optionItem != null) {
-                        try {
-                            val inflater = android.view.LayoutInflater.from(context)
-                            val popupItemLayout = context.resources.getIdentifier(
-                                "wallpaper_options_popup_item", "layout", context.packageName
+                            if (popupItemLayout == 0) return
+                            val container = popupView as? android.view.ViewGroup ?: return
+                            val itemView = inflater.inflate(popupItemLayout, container, false)
+                            val iconView = itemView.findViewById<android.view.View>(
+                                context.resources.getIdentifier("icon", "id", context.packageName)
                             )
-                            if (popupItemLayout != 0) {
-                                val container = popupView as? android.view.ViewGroup
-                                val itemView = inflater.inflate(popupItemLayout, container, false)
-                                val iconView = itemView.findViewById<android.view.View>(
-                                    context.resources.getIdentifier("icon", "id", context.packageName)
-                                )
-                                val textView = itemView.findViewById<android.widget.TextView>(
-                                    context.resources.getIdentifier("bubble_text", "id", context.packageName)
-                                )
-                                iconView?.background = (optionItem.getFieldSilently("icon") as? Drawable)
-                                textView?.text = optionItem.getFieldSilently("label") as? CharSequence
-                                container?.addView(itemView)
-                                (mItemMap as? android.util.ArrayMap<Any, Any>)?.put(itemView, optionItem)
-                                itemView.setOnClickListener(popupView as? android.view.View.OnClickListener)
-                                itemView.setOnLongClickListener(popupView as? View.OnLongClickListener)
-                            }
-                        } catch (_: Throwable) {
+                            val textView = itemView.findViewById<android.widget.TextView>(
+                                context.resources.getIdentifier("bubble_text", "id", context.packageName)
+                            )
+                            iconView?.background = icon
+                            textView?.text = label
+                            container.addView(itemView)
+                            itemView.setOnClickListener { clickListener.onLongClick(it) }
+                            itemView.setOnLongClickListener(clickListener)
+                            android.util.Log.d("PLEnhanced", "item added: $label")
+                        } catch (t: Throwable) {
+                            android.util.Log.e("PLEnhanced", "addPopupItem error: $t")
                         }
                     }
-                }
+
+                    if (toggleHideAppsInPopup) {
+                        addPopupItem(
+                            if (HideApps.SHOULD_UNHIDE_ALL_APPS) modRes.getString(R.string.hide_apps)
+                            else modRes.getString(R.string.unhide_apps),
+                            if (HideApps.SHOULD_UNHIDE_ALL_APPS) modRes.getDrawable(R.drawable.ic_visibility_lock)
+                            else modRes.getDrawable(R.drawable.ic_visibility),
+                            View.OnLongClickListener {
+                                setUnhideAllApps(!HideApps.SHOULD_UNHIDE_ALL_APPS)
+                                true
+                            }
+                        )
+                    }
+
+                    if (entryInPopup) {
+                        addPopupItem(
+                            modRes.getString(R.string.app_name_shortened),
+                            modRes.getDrawable(R.drawable.ic_launcher_foreground),
+                            object : View.OnLongClickListener {
+                                override fun onLongClick(p0: View?): Boolean {
+                                    val launchIntent: Intent = mContext.packageManager
+                                        .getLaunchIntentForPackage(BuildConfig.APPLICATION_ID)
+                                        ?: return false
+                                    mContext.startActivity(launchIntent)
+                                    return true
+                                }
+                            }
+                        )
+                    }
+                }, 500L)
             }
     }
 
