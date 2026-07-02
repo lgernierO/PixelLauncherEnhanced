@@ -105,7 +105,7 @@ class AppListAdapter(private val appList: List<AppInfoModel>) :
 
         when {
             itemCount == 1 -> {
-                layoutParams.topMargin = 0
+                layoutParams.topMargin = baseTop
                 layoutParams.bottomMargin = baseBottom
                 container.setBackgroundResource(R.drawable.container_single)
             }
