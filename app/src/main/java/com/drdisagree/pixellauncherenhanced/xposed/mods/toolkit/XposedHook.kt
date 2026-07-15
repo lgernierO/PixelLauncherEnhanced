@@ -19,6 +19,7 @@ class HookParam(private val chain: XposedInterface.Chain) {
     val args: MutableList<Any?> = chain.args.toMutableList()
     var result: Any? = UNINITIALIZED
     var skipProceed: Boolean = false
+    val method: java.lang.reflect.Member get() = chain.executable
 }
 
 class HookCallback(

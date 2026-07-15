@@ -23,6 +23,7 @@ import com.drdisagree.pixellauncherenhanced.xposed.mods.toolkit.callMethod
 import com.drdisagree.pixellauncherenhanced.xposed.mods.toolkit.callMethodSilently
 import com.drdisagree.pixellauncherenhanced.xposed.mods.toolkit.getField
 import com.drdisagree.pixellauncherenhanced.xposed.mods.toolkit.getFieldSilently
+import com.drdisagree.pixellauncherenhanced.xposed.mods.toolkit.getStaticField
 import com.drdisagree.pixellauncherenhanced.xposed.mods.toolkit.hasMethod
 import com.drdisagree.pixellauncherenhanced.xposed.mods.toolkit.hookConstructor
 import com.drdisagree.pixellauncherenhanced.xposed.mods.toolkit.hookMethod
@@ -35,6 +36,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.lang.reflect.Proxy
 import java.util.Arrays
+import kotlin.time.Duration.Companion.milliseconds
 
 class LauncherSettings(context: Context) : ModPack(context) {
 
@@ -228,119 +230,408 @@ class LauncherSettings(context: Context) : ModPack(context) {
                     }
             }
 
-        val optionsPopupViewClass = findClass(
-            "com.google.android.apps.nexuslauncher.customize.OptionsPopupDialog\$PopupView",
-            "com.android.launcher3.views.OptionsPopupView"
-        )
-        val arrowPopupClass = findClass("com.android.launcher3.popup.ArrowPopup", suppressError = true)
+        val optionsPopupViewClass = findClass("com.android.launcher3.views.OptionsPopupView")
         val optionItemClass =
             findClass($$"com.android.launcher3.views.OptionsPopupView$OptionItem")!!
         val launcherEventEnum =
             findClass($$"com.android.launcher3.logging.StatsLogManager$LauncherEvent")!!
+        val eventEnum = findClass($$"com.android.launcher3.logging.StatsLogManager$EventEnum")!!
+        val optionItemConstructors = optionItemClass.declaredConstructors
 
-        optionsPopupViewClass
+        optionItemClass
             .hookConstructor()
-            .suppressError()
-            .runAfter { param ->
-                if (!entryInPopup && !toggleHideAppsInPopup) return@runAfter
-                android.util.Log.d("PLEnhanced", "OptionsPopupView constructor called, injecting items")
+            .runBefore { param ->
+                if (!entryInPopup && !toggleHideAppsInPopup) return@runBefore
 
-                val popupView = param.thisObject
-                if (popupView == null) { android.util.Log.d("PLEnhanced", "popupView is null"); return@runAfter }
-                val context = (popupView as? android.view.View)?.context
-                if (context == null) { android.util.Log.d("PLEnhanced", "context is null"); return@runAfter }
-                val mItemMap = popupView.getFieldSilently("mItemMap") as? android.util.ArrayMap<*, *>
-                if (mItemMap == null) { android.util.Log.d("PLEnhanced", "mItemMap is null"); return@runAfter }
+                if (param.args[0] is Context) {
+                    val context = param.args[0] as Context
+                    val labelRes = param.args[1] as Int
+                    val iconRes = param.args[2] as Int
+                    val eventId = param.args[3]
+                    val clickListener = param.args[4]
 
-                val eventId = launcherEventEnum.enumConstants?.let { constants ->
-                    constants.firstOrNull { it.toString() == "LAUNCHER_SETTINGS_BUTTON_TAP_OR_LONGPRESS" }
-                }
-                if (eventId == null) { android.util.Log.d("PLEnhanced", "eventId is null"); return@runAfter }
+                    when {
+                        labelRes == -1 && iconRes == -1 -> {
+                            param.thisObject.apply {
+                                setField("labelRes", labelRes)
+                                setField("label", modRes.getString(R.string.app_name_shortened))
+                                setField(
+                                    "icon",
+                                    modRes.getDrawable(R.drawable.ic_launcher_foreground)
+                                )
+                                setField("eventId", eventId)
+                                setField("clickListener", clickListener)
+                            }
+                        }
 
-                fun createOptionItem(
-                    label: CharSequence,
-                    icon: Drawable,
-                    clickListener: View.OnLongClickListener
-                ): Any? {
-                    return try {
-                        val item = optionItemClass.getDeclaredConstructor().newInstance()
-                        item.setField("label", label)
-                        item.setField("icon", icon)
-                        item.setField("eventId", eventId)
-                        item.setField("clickListener", clickListener)
-                        item
-                    } catch (_: Throwable) {
-                        null
+                        labelRes == -2 && iconRes == -2 -> {
+                            param.thisObject.apply {
+                                setField("labelRes", labelRes)
+                                setField(
+                                    "label",
+                                    if (HideApps.SHOULD_UNHIDE_ALL_APPS) modRes.getString(R.string.hide_apps)
+                                    else modRes.getString(R.string.unhide_apps)
+                                )
+                                setField(
+                                    "icon",
+                                    if (HideApps.SHOULD_UNHIDE_ALL_APPS) modRes.getDrawable(R.drawable.ic_visibility_lock)
+                                    else modRes.getDrawable(R.drawable.ic_visibility)
+                                )
+                                setField("eventId", eventId)
+                                setField("clickListener", clickListener)
+                            }
+                        }
+
+                        else -> {
+                            param.thisObject.apply {
+                                setField("labelRes", labelRes)
+                                setField("label", context.getString(labelRes))
+                                setField("icon", context.getDrawable(iconRes))
+                                setField("eventId", eventId)
+                                setField("clickListener", clickListener)
+                            }
+                        }
+                    }
+                } else {
+                    val label = param.args[0] as CharSequence
+                    val icon = param.args[1] as Drawable
+                    val eventId = param.args[2]
+                    val clickListener = param.args[3]
+
+                    param.thisObject.apply {
+                        setField("labelRes", 0)
+                        setField("label", label)
+                        setField("icon", icon)
+                        setField("eventId", eventId)
+                        setField("clickListener", clickListener)
                     }
                 }
 
-                android.util.Log.d("PLEnhanced", "popupView=${popupView.javaClass.simpleName}, context=$context, mItemMap size=${mItemMap.size}")
+                param.result = null
+            }
 
-                val popupViewAsView = popupView as? android.view.View ?: return@runAfter
-                popupViewAsView.post {
-                    android.util.Log.d("PLEnhanced", "postDelayed: adding custom items")
+        if (optionsPopupViewClass.hasMethod("getOptions")) {
+            @Suppress("UNCHECKED_CAST")
+            optionsPopupViewClass
+                .hookMethod("getOptions")
+                .runAfter { param ->
+                    if (!entryInPopup && !toggleHideAppsInPopup) return@runAfter
 
-                    fun addPopupItem(label: CharSequence, icon: Drawable, clickListener: View.OnLongClickListener) {
-                        try {
-                            val inflater = android.view.LayoutInflater.from(context)
-                            val popupItemLayout = context.resources.getIdentifier(
-                                "wallpaper_options_popup_item", "layout", context.packageName
-                            )
-                            if (popupItemLayout == 0) return
-                            val container = popupView as? android.view.ViewGroup ?: return
-                            val itemView = inflater.inflate(popupItemLayout, container, false)
-                            val iconView = itemView.findViewById<android.view.View>(
-                                context.resources.getIdentifier("icon", "id", context.packageName)
-                            )
-                            val textView = itemView.findViewById<android.widget.TextView>(
-                                context.resources.getIdentifier("bubble_text", "id", context.packageName)
-                            )
-                            iconView?.background = icon
-                            textView?.text = label
-                            container.addView(itemView)
-                            itemView.setOnClickListener { clickListener.onLongClick(it) }
-                            itemView.setOnLongClickListener(clickListener)
-                            android.util.Log.d("PLEnhanced", "item added: $label")
-                        } catch (t: Throwable) {
-                            android.util.Log.e("PLEnhanced", "addPopupItem error: $t")
+                    val launcher = param.args[0]
+                    val options = param.result as ArrayList<Any>
+
+                    val eventId = launcherEventEnum.enumConstants?.let {
+                        Arrays.stream(it)
+                            .filter { c: Any -> c.toString() == "LAUNCHER_SETTINGS_BUTTON_TAP_OR_LONGPRESS" }
+                            .findFirst().get()
+                    }!!
+
+                    if (toggleHideAppsInPopup) {
+                        val clickListener = View.OnLongClickListener {
+                            setUnhideAllApps(!HideApps.SHOULD_UNHIDE_ALL_APPS)
+                            true
+                        }
+
+                        val optionItem = when {
+                            optionItemConstructors.any {
+                                it.parameterTypes.contentEquals(
+                                    arrayOf(
+                                        CharSequence::class.java,
+                                        Drawable::class.java,
+                                        eventEnum,
+                                        View.OnLongClickListener::class.java
+                                    )
+                                )
+                            } -> {
+                                optionItemClass
+                                    .getDeclaredConstructor(
+                                        CharSequence::class.java,
+                                        Drawable::class.java,
+                                        eventEnum,
+                                        View.OnLongClickListener::class.java
+                                    )
+                                    .newInstance(
+                                        if (HideApps.SHOULD_UNHIDE_ALL_APPS) modRes.getString(R.string.hide_apps)
+                                        else modRes.getString(R.string.unhide_apps),
+                                        if (HideApps.SHOULD_UNHIDE_ALL_APPS) modRes.getDrawable(R.drawable.ic_visibility_lock)
+                                        else modRes.getDrawable(R.drawable.ic_visibility),
+                                        eventId,
+                                        clickListener
+                                    )
+                            }
+
+                            optionItemConstructors.any {
+                                it.parameterTypes.contentEquals(
+                                    arrayOf(
+                                        Context::class.java,
+                                        Int::class.javaPrimitiveType,
+                                        Int::class.javaPrimitiveType,
+                                        eventEnum,
+                                        View.OnLongClickListener::class.java
+                                    )
+                                )
+                            } -> {
+                                optionItemClass
+                                    .getDeclaredConstructor(
+                                        Context::class.java,
+                                        Int::class.javaPrimitiveType,
+                                        Int::class.javaPrimitiveType,
+                                        eventEnum,
+                                        View.OnLongClickListener::class.java
+                                    )
+                                    .newInstance(
+                                        launcher,
+                                        -2,
+                                        -2,
+                                        eventId,
+                                        clickListener
+                                    )
+                            }
+
+                            else -> {
+                                log("No supported constructor found for optionItemClass.")
+                                null
+                            }
+                        }
+                        if (optionItem != null) {
+                            options.add(optionItem)
                         }
                     }
 
-                    if (toggleHideAppsInPopup) {
-                        addPopupItem(
-                            if (HideApps.SHOULD_UNHIDE_ALL_APPS) modRes.getString(R.string.hide_apps)
-                            else modRes.getString(R.string.unhide_apps),
-                            if (HideApps.SHOULD_UNHIDE_ALL_APPS) modRes.getDrawable(R.drawable.ic_visibility_lock)
-                            else modRes.getDrawable(R.drawable.ic_visibility),
-                            View.OnLongClickListener {
-                                setUnhideAllApps(!HideApps.SHOULD_UNHIDE_ALL_APPS)
-                                true
+                    if (entryInPopup) {
+                        val clickListener = object : View.OnLongClickListener {
+                            override fun onLongClick(p0: View?): Boolean {
+                                val launchIntent: Intent = mContext.packageManager
+                                    .getLaunchIntentForPackage(BuildConfig.APPLICATION_ID)
+                                    ?: return false
+                                mContext.startActivity(launchIntent)
+                                return true
                             }
+                        }
+
+                        val optionItem = when {
+                            optionItemConstructors.any {
+                                it.parameterTypes.contentEquals(
+                                    arrayOf(
+                                        CharSequence::class.java,
+                                        Drawable::class.java,
+                                        eventEnum,
+                                        View.OnLongClickListener::class.java
+                                    )
+                                )
+                            } -> {
+                                optionItemClass
+                                    .getDeclaredConstructor(
+                                        CharSequence::class.java,
+                                        Drawable::class.java,
+                                        eventEnum,
+                                        View.OnLongClickListener::class.java
+                                    )
+                                    .newInstance(
+                                        modRes.getString(R.string.app_name_shortened),
+                                        modRes.getDrawable(R.drawable.ic_launcher_foreground),
+                                        eventId,
+                                        clickListener
+                                    )
+                            }
+
+                            optionItemConstructors.any {
+                                it.parameterTypes.contentEquals(
+                                    arrayOf(
+                                        Context::class.java,
+                                        Int::class.javaPrimitiveType,
+                                        Int::class.javaPrimitiveType,
+                                        eventEnum,
+                                        View.OnLongClickListener::class.java
+                                    )
+                                )
+                            } -> {
+                                optionItemClass
+                                    .getDeclaredConstructor(
+                                        Context::class.java,
+                                        Int::class.javaPrimitiveType,
+                                        Int::class.javaPrimitiveType,
+                                        eventEnum,
+                                        View.OnLongClickListener::class.java
+                                    )
+                                    .newInstance(
+                                        launcher,
+                                        -1,
+                                        -1,
+                                        eventId,
+                                        clickListener
+                                    )
+                            }
+
+                            else -> {
+                                log("No supported constructor found for optionItemClass.")
+                                null
+                            }
+                        }
+                        if (optionItem != null) {
+                            options.add(optionItem)
+                        }
+                    }
+
+                    param.result = options
+                }
+        } else {
+            val workspaceLongPressOptionsClass =
+                findClass("com.android.launcher3.popup.WorkspaceLongPressOptions")
+            val popupDataClass = findClass("com.android.launcher3.popup.PopupData")!!
+            val popupCategoryClass = findClass("com.android.launcher3.popup.PopupCategory")!!
+            val popupActionInterface = popupDataClass.declaredFields
+                .firstOrNull { it.name == "popupAction" }!!.type
+
+            val systemShortcutCategory = popupCategoryClass.enumConstants
+                ?.firstOrNull { it.toString() == "SYSTEM_SHORTCUT" }
+                ?: popupCategoryClass.getStaticField("SYSTEM_SHORTCUT")
+
+            val popupDataConstructor = popupDataClass.getDeclaredConstructor(
+                Int::class.javaPrimitiveType,
+                Int::class.javaPrimitiveType,
+                popupCategoryClass,
+                eventEnum,
+                popupActionInterface
+            )
+
+            @Suppress("UNCHECKED_CAST")
+            workspaceLongPressOptionsClass
+                .hookMethod("getAll")
+                .runAfter { param ->
+                    if (!entryInPopup && !toggleHideAppsInPopup) return@runAfter
+
+                    val eventId = launcherEventEnum.enumConstants?.let {
+                        Arrays.stream(it)
+                            .filter { c: Any -> c.toString() == "LAUNCHER_SETTINGS_BUTTON_TAP_OR_LONGPRESS" }
+                            .findFirst().get()
+                    }!!
+
+                    val options = ArrayList(param.result as List<Any>)
+
+                    if (toggleHideAppsInPopup) {
+                        val action = Proxy.newProxyInstance(
+                            popupActionInterface.classLoader,
+                            arrayOf(popupActionInterface)
+                        ) { _, _, _ ->
+                            setUnhideAllApps(!HideApps.SHOULD_UNHIDE_ALL_APPS)
+                            null
+                        }
+
+                        options.add(
+                            popupDataConstructor.newInstance(
+                                -2,
+                                -2,
+                                systemShortcutCategory,
+                                eventId,
+                                action
+                            )
                         )
                     }
 
                     if (entryInPopup) {
-                        addPopupItem(
-                            modRes.getString(R.string.app_name_shortened),
-                            modRes.getDrawable(R.drawable.ic_launcher_foreground),
-                            object : View.OnLongClickListener {
-                                override fun onLongClick(p0: View?): Boolean {
-                                    val launchIntent: Intent = mContext.packageManager
-                                        .getLaunchIntentForPackage(BuildConfig.APPLICATION_ID)
-                                        ?: return false
-                                    mContext.startActivity(launchIntent)
-                                    return true
-                                }
-                            }
+                        val action = Proxy.newProxyInstance(
+                            popupActionInterface.classLoader,
+                            arrayOf(popupActionInterface)
+                        ) { _, _, _ ->
+                            val launchIntent = mContext.packageManager
+                                .getLaunchIntentForPackage(BuildConfig.APPLICATION_ID)
+                            if (launchIntent != null) mContext.startActivity(launchIntent)
+                            null
+                        }
+
+                        options.add(
+                            popupDataConstructor.newInstance(
+                                -1,
+                                -1,
+                                systemShortcutCategory,
+                                eventId,
+                                action
+                            )
                         )
                     }
 
-                    try {
-                        popupView.callMethodSilently("assignMarginsAndBackgrounds", popupViewAsView as? android.view.ViewGroup)
-                    } catch (_: Throwable) {
+                    param.result = options
+                }
+
+            val popupContainerClass = findClass("com.android.launcher3.popup.PopupContainer")
+            val pendingSentinels =
+                ThreadLocal<List<Pair<Any, Int>>>() // Pair<popupData, originalIconResId>
+
+            popupContainerClass
+                .hookMethod("showForSystemShortcuts")
+                .runBefore { param ->
+                    if (!entryInPopup && !toggleHideAppsInPopup) return@runBefore
+
+                    @Suppress("UNCHECKED_CAST")
+                    val list = param.args[0] as List<Any>
+                    val sentinels = list.mapNotNull { item ->
+                        val id = item.getFieldSilently("iconResId") as? Int
+                            ?: return@mapNotNull null
+                        if (id != -1 && id != -2) return@mapNotNull null
+                        item to id
+                    }
+
+                    if (sentinels.isEmpty()) return@runBefore
+
+                    // Borrow valid launcher resource IDs from first real item as placeholder
+                    val realItem = list.firstOrNull { item ->
+                        (item.getFieldSilently("iconResId") as? Int ?: 0) > 0
+                    }
+                    val placeholderIcon = (realItem?.getFieldSilently("iconResId") as? Int) ?: 0
+                    val placeholderLabel = (realItem?.getFieldSilently("labelResId") as? Int) ?: 0
+
+                    for ((sentinelData, _) in sentinels) {
+                        sentinelData.setField("iconResId", placeholderIcon)
+                        sentinelData.setField("labelResId", placeholderLabel)
+                    }
+
+                    pendingSentinels.set(sentinels)
+                }
+                .runAfter { param ->
+                    if (!entryInPopup && !toggleHideAppsInPopup) return@runAfter
+
+                    val sentinels = pendingSentinels.get() ?: return@runAfter
+                    pendingSentinels.remove()
+
+                    val systemShortcutContainer =
+                        param.thisObject.getFieldSilently("systemShortcutContainer")
+                            ?: return@runAfter
+                    val count = systemShortcutContainer.callMethod("getChildCount") as? Int
+                        ?: return@runAfter
+
+                    for (i in 0 until count) {
+                        val child = systemShortcutContainer.callMethod("getChildAt", i) ?: continue
+                        val tag = child.callMethod("getTag") ?: continue
+                        val (_, originalIconResId) = sentinels.firstOrNull { (data, _) -> data === tag }
+                            ?: continue
+
+                        val icon: Drawable
+                        val label: CharSequence
+
+                        when (originalIconResId) {
+                            -1 -> {
+                                icon = modRes.getDrawable(R.drawable.ic_launcher_foreground)
+                                label = modRes.getString(R.string.app_name_shortened)
+                            }
+
+                            -2 -> {
+                                icon =
+                                    if (HideApps.SHOULD_UNHIDE_ALL_APPS) modRes.getDrawable(R.drawable.ic_visibility_lock)
+                                    else modRes.getDrawable(R.drawable.ic_visibility)
+                                label =
+                                    if (HideApps.SHOULD_UNHIDE_ALL_APPS) modRes.getString(R.string.hide_apps)
+                                    else modRes.getString(R.string.unhide_apps)
+                            }
+
+                            else -> continue
+                        }
+
+                        child.getFieldSilently("mIconView").callMethod("setBackground", icon)
+                        child.getFieldSilently("mBubbleText").callMethod("setText", label)
                     }
                 }
-            }
+        }
     }
 
     fun setUnhideAllApps(value: Boolean) {
@@ -350,7 +641,7 @@ class LauncherSettings(context: Context) : ModPack(context) {
             .putBoolean(HIDE_APPS_FROM_APP_DRAWER, value)
             .commit()
         CoroutineScope(Dispatchers.Main).launch {
-            delay(300)
+            delay(300.milliseconds)
             HideApps.updateLauncherIcons(mContext)
         }
     }
