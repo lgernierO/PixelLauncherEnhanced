@@ -1,4 +1,4 @@
-name: Build Debug APK
+name: Build Fork Debug APK
 
 on:
   push:
@@ -23,6 +23,9 @@ jobs:
 
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
+
+      - name: Use default debug signing
+        run: rm -f keystore.properties
 
       - name: Get application version name
         run: echo "VERSION_NAME=$(${{ github.workspace }}/gradlew -q printVersionName)" >> $GITHUB_ENV
