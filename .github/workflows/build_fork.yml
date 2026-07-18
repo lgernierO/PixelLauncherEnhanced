@@ -28,16 +28,10 @@ jobs:
         run: rm -f keystore.properties
 
       - name: Get application version name
-        run: echo "VERSION_NAME=$(${{ github.workspace }}/gradlew -q printVersionName)" >> $GITHUB_ENV
-
-      - name: Set application version name
-        uses: chkfung/android-version-actions@v1.2.3
-        with:
-          gradlePath: app/build.gradle.kts
-          versionName: "${{ env.VERSION_NAME }} Dev${{ github.run_number }}"
+        run: echo "VERSION_NAME=$(${{ github.workspace }}/gradlew -q printVersionName)" >> "$GITHUB_ENV"
 
       - name: Build with Gradle
-        run: ./gradlew assembleRelease
+        run: ./gradlew assembleRelease -PversionNameSuffix=" Release${{ github.run_number }}"
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v7

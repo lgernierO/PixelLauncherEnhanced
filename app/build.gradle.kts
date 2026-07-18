@@ -18,7 +18,9 @@ android {
         minSdk = 26
         targetSdk = 36
         versionCode = 7
-        versionName = "1.1.6"
+        val baseVersionName = "1.1.6"
+        val versionNameSuffix = providers.gradleProperty("versionNameSuffix").orNull.orEmpty()
+        versionName = baseVersionName + versionNameSuffix
         base.archivesName = "PLEnhanced v${defaultConfig.versionName}"
     }
 
