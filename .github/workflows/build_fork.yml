@@ -1,13 +1,13 @@
-name: Build Fork Debug APK
+name: Build Fork Release APK
 
 on:
   push:
-    branches: [ "master", "fix/**" ]
+    branches: [ "master", "fix/**", "release/**" ]
   workflow_dispatch:
 
 jobs:
   build:
-    name: Build Debug APK
+    name: Build Release APK
     runs-on: ubuntu-latest
 
     steps:
@@ -37,11 +37,11 @@ jobs:
           versionName: "${{ env.VERSION_NAME }} Dev${{ github.run_number }}"
 
       - name: Build with Gradle
-        run: ./gradlew assembleDebug
+        run: ./gradlew assembleRelease
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v7
         with:
-          name: "PLEnhanced v${{ env.VERSION_NAME }} Dev${{ github.run_number }}"
-          path: app/build/outputs/apk/debug/*.apk
+          name: "PLEnhanced v${{ env.VERSION_NAME }} Release${{ github.run_number }}"
+          path: app/build/outputs/apk/release/*.apk
           if-no-files-found: error
