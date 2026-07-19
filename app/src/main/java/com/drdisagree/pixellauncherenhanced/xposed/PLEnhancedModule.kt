@@ -19,6 +19,7 @@ import com.drdisagree.pixellauncherenhanced.xposed.utils.BootLoopProtector
 import com.drdisagree.pixellauncherenhanced.xposed.utils.XPrefs
 import com.drdisagree.pixellauncherenhanced.xposed.utils.XPrefs.Xprefs
 import com.drdisagree.pixellauncherenhanced.xposed.utils.XPrefs.XprefsIsInitialized
+import io.github.libxposed.api.XposedInterface
 import io.github.libxposed.api.XposedModule
 import io.github.libxposed.api.XposedModuleInterface
 import java.lang.ref.WeakReference
@@ -31,94 +32,153 @@ class PLEnhancedModule : XposedModule(), ServiceConnection {
 
     private lateinit var mContext: Context
 
-    init {
+    @Volatile
+    private var bootstrapStarted = false
+    private var processName: String = ""
+
+    override fun onModuleLoaded(param: XposedModuleInterface.ModuleLoadedParam) {
         instance = this
+        processName = param.processName
+
+        log(
+            Log.INFO,
+            TAG,
+            "Loaded in ${param.processName}; framework=$frameworkName $frameworkVersion " +
+                    "(API $apiVersion)"
+        )
     }
 
-    override fun onPackageLoaded(param: XposedModuleInterface.PackageLoadedParam) {
+    override fun onPackageReady(param: XposedModuleInterface.PackageReadyParam) {
         val packageName = param.packageName
-        XposedHook.classLoader = param.defaultClassLoader
-        val isChildProcess = try { packageName.contains(":") } catch (_: Throwable) { false }
+        if (EntryList.getEntries(packageName).isEmpty()) return
 
-        if (packageName == FRAMEWORK_PACKAGE) {
-            try {
-                val phoneWindowManagerClass = Class.forName(
-                    "com.android.server.policy.PhoneWindowManager",
-                    false,
-                    param.defaultClassLoader
-                )
+        isChildProcess = processName.isNotEmpty() && processName != packageName
+        if (isChildProcess) {
+            log(Log.INFO, TAG, "Skipping unsupported child process $processName")
+            detach()
+            return
+        }
 
-                val initMethod = phoneWindowManagerClass.declaredMethods
-                    .firstOrNull { it.name == "init" }
-                    ?: phoneWindowManagerClass.methods
-                        .firstOrNull { it.name == "init" }
+        XposedHook.classLoader = param.classLoader
+        installApplicationBootstrap(packageName, param.classLoader)
+    }
 
-                if (initMethod != null) {
-                    hook(initMethod).intercept { chain ->
-                        try {
-                            if (!::mContext.isInitialized) {
-                                mContext = chain.args[0] as Context
+    override fun onSystemServerStarting(
+        param: XposedModuleInterface.SystemServerStartingParam
+    ) {
+        isChildProcess = false
+        XposedHook.classLoader = param.classLoader
+        installSystemServerBootstrap(param.classLoader)
+    }
 
-                                HookRes.modRes = mContext.createPackageContext(
-                                    BuildConfig.APPLICATION_ID,
-                                    Context.CONTEXT_IGNORE_SECURITY
-                                ).resources
+    override fun onHotReloading(
+        param: XposedModuleInterface.HotReloadingParam
+    ): Boolean {
+        // The module owns preference listeners, a Binder connection and background threads.
+        // Reject hot reload until all of them can be transferred without retaining old code.
+        log(Log.INFO, TAG, "Hot reload rejected; restart the target process to update hooks safely")
+        return false
+    }
 
-                                XPrefs.init(mContext)
-                                ResourceHookManager.init(mContext)
-
-                                CompletableFuture.runAsync {
-                                    waitForXprefsLoad(packageName, param.defaultClassLoader)
-                                }
-                            }
-                        } catch (throwable: Throwable) {
-                            log(TAG, "Error in PhoneWindowManager.init hook: $throwable")
-                        }
-                        chain.proceed()
-                    }
+    private fun installApplicationBootstrap(packageName: String, classLoader: ClassLoader) {
+        try {
+            val newApplicationMethod = Instrumentation::class.java.declaredMethods
+                .firstOrNull {
+                    it.name == "newApplication" &&
+                            it.parameterTypes.size == 3 &&
+                            it.parameterTypes[0] == ClassLoader::class.java &&
+                            it.parameterTypes[1] == String::class.java &&
+                            Context::class.java.isAssignableFrom(it.parameterTypes[2])
                 }
-            } catch (throwable: Throwable) {
-                log(TAG, "Error hooking framework: $throwable")
+
+            if (newApplicationMethod == null) {
+                log(Log.ERROR, TAG, "Instrumentation.newApplication hook point was not found")
+                return
             }
-        } else {
-            if (!isChildProcess) {
-                try {
-                    val instrumentationClass = Instrumentation::class.java
 
-                    val newApplicationMethod = instrumentationClass.declaredMethods
-                        .firstOrNull {
-                            it.name == "newApplication" &&
-                                    it.parameterTypes.size == 3 &&
-                                    it.parameterTypes[0] == ClassLoader::class.java &&
-                                    it.parameterTypes[1] == String::class.java
-                        }
-
-                    if (newApplicationMethod != null) {
-                        hook(newApplicationMethod).intercept { chain ->
-                            try {
-                                if (!::mContext.isInitialized) {
-                                    mContext = chain.args[2] as Context
-
-                                    HookRes.modRes = mContext.createPackageContext(
-                                        BuildConfig.APPLICATION_ID,
-                                        Context.CONTEXT_IGNORE_SECURITY
-                                    ).resources
-
-                                    XPrefs.init(mContext)
-                                    ResourceHookManager.init(mContext)
-
-                                    waitForXprefsLoad(packageName, param.defaultClassLoader)
-                                }
-                            } catch (throwable: Throwable) {
-                                log(TAG, "Error in newApplication hook: $throwable")
-                            }
-                            chain.proceed()
-                        }
-                    }
-                } catch (throwable: Throwable) {
-                    log(TAG, "Error setting up app hooks: $throwable")
+            hook(newApplicationMethod)
+                .setId("${BuildConfig.APPLICATION_ID}:bootstrap:application")
+                .setExceptionMode(XposedInterface.ExceptionMode.PROTECTIVE)
+                .intercept { chain ->
+                    initializeTarget(
+                        chain.args[2] as Context,
+                        packageName,
+                        classLoader,
+                        async = false
+                    )
+                    chain.proceed()
                 }
+        } catch (throwable: Throwable) {
+            log(Log.ERROR, TAG, "Error setting up application bootstrap", throwable)
+        }
+    }
+
+    private fun installSystemServerBootstrap(classLoader: ClassLoader) {
+        try {
+            val phoneWindowManagerClass = Class.forName(
+                "com.android.server.policy.PhoneWindowManager",
+                false,
+                classLoader
+            )
+            val initMethod = phoneWindowManagerClass.declaredMethods
+                .firstOrNull { it.name == "init" }
+                ?: phoneWindowManagerClass.methods.firstOrNull { it.name == "init" }
+
+            if (initMethod == null) {
+                log(Log.ERROR, TAG, "PhoneWindowManager.init hook point was not found")
+                return
             }
+
+            hook(initMethod)
+                .setId("${BuildConfig.APPLICATION_ID}:bootstrap:system-server")
+                .setExceptionMode(XposedInterface.ExceptionMode.PROTECTIVE)
+                .intercept { chain ->
+                    initializeTarget(
+                        chain.args[0] as Context,
+                        FRAMEWORK_PACKAGE,
+                        classLoader,
+                        async = true
+                    )
+                    chain.proceed()
+                }
+        } catch (throwable: Throwable) {
+            log(Log.ERROR, TAG, "Error setting up system_server bootstrap", throwable)
+        }
+    }
+
+    private fun initializeTarget(
+        context: Context,
+        packageName: String,
+        classLoader: ClassLoader,
+        async: Boolean
+    ) {
+        synchronized(this) {
+            if (bootstrapStarted) return
+            bootstrapStarted = true
+        }
+
+        try {
+            mContext = context
+            HookRes.modRes = context.createPackageContext(
+                BuildConfig.APPLICATION_ID,
+                Context.CONTEXT_IGNORE_SECURITY
+            ).resources
+            XPrefs.init(context)
+            ResourceHookManager.init(context)
+
+            val loadPreferences = Runnable {
+                waitForXprefsLoad(packageName, classLoader)
+            }
+            if (async) {
+                CompletableFuture.runAsync(loadPreferences)
+            } else {
+                loadPreferences.run()
+            }
+        } catch (throwable: Throwable) {
+            synchronized(this) {
+                bootstrapStarted = false
+            }
+            throw throwable
         }
     }
 

@@ -19,10 +19,9 @@
 -keep class com.drdisagree.pixellauncherenhanced.ui.activities.**
 -keep class com.drdisagree.pixellauncherenhanced.ui.fragments.**
 
--keep class io.github.libxposed.api.** { *; }
--keep class io.github.libxposed.service.** { *; }
-
--keep class com.drdisagree.pixellauncherenhanced.xposed.PLEnhancedModule {
+-dontwarn io.github.libxposed.annotation.**
+-adaptresourcefilecontents META-INF/xposed/java_init.list
+-keep,allowoptimization,allowobfuscation public class * extends io.github.libxposed.api.XposedModule {
     public <init>();
 }
 
